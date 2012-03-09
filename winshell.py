@@ -133,9 +133,9 @@ def _file_operation (
     (hWnd or 0, operation, source_path, target_path, flags, None, None)
   )
   if result != 0:
-    raise x_winshell, result
+    raise x_winshell (result)
   elif n_aborted:
-    raise x_winshell, "%d operations were aborted by the user" % n_aborted
+    raise x_winshell ("%d operations were aborted by the user" % n_aborted)
 
 def copy_file (
   source_path,
