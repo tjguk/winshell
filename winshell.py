@@ -1,31 +1,32 @@
 """winshell - convenience functions to access Windows shell functionality
 
 Certain aspects of the Windows user interface are grouped by
- Microsoft as Shell functions. These include the Desktop, shortcut
- icons, special folders (such as My Documents) and a few other things.
+Microsoft as Shell functions. These include the Desktop, shortcut
+icons, special folders (such as My Documents) and a few other things.
 
 These are mostly available via the shell module of the win32all
- extensions, but whenever I need to use them, I've forgotten the
- various constants and so on.
+extensions, but whenever I need to use them, I've forgotten the
+various constants and so on.
 
 Several of the shell items have two variants: personal and common,
- or User and All Users. These refer to systems with profiles in use:
- anything from NT upwards, and 9x with Profiles turned on. Where
- relevant, the Personal/User version refers to that owned by the
- logged-on user and visible only to that user; the Common/All Users
- version refers to that maintained by an Administrator and visible
- to all users of the system.
+or User and All Users. These refer to systems with profiles in use:
+anything from NT upwards, and 9x with Profiles turned on. Where
+relevant, the Personal/User version refers to that owned by the
+logged-on user and visible only to that user; the Common/All Users
+version refers to that maintained by an Administrator and visible
+to all users of the system.
 
-(c) Tim Golden <winshell@timgolden.me.uk> 25th November 2003
+Copyright Tim Golden <winshell@timgolden.me.uk> 25th November 2003 - 2012
 Licensed under the (GPL-compatible) MIT License:
 http://www.opensource.org/licenses/mit-license.php
 
+9th Mar 2012 0.3 Upgraded for Py3.x
 9th Nov 2005  0.2  . License changed to MIT
                    . Added functionality using SHFileOperation
 25th Nov 2003 0.1  . Initial release by Tim Golden
 """
 
-__VERSION__ = "0.2"
+__VERSION__ = "0.3"
 
 import os, sys
 from win32com import storagecon
@@ -88,7 +89,7 @@ def sendto ():
   return get_path (shellcon.CSIDL_SENDTO)
 
 #
-# Internally abstracted function to handle one 
+# Internally abstracted function to handle one
 #  of several shell-based file manipulation
 #  routines. Not all the possible parameters
 #  are covered which might be passed to the
@@ -98,8 +99,8 @@ def sendto ():
 #
 def _file_operation (
   operation,
-  source_path, 
-  target_path=None, 
+  source_path,
+  target_path=None,
   allow_undo=True,
   no_confirm=False,
   rename_on_collision=True,
@@ -119,30 +120,30 @@ def _file_operation (
     source_path = os.path.abspath (source_path)
   else:
     source_path = [os.path.abspath (i) for i in source_path]
-  
+
   target_path = target_path or ""
   if isinstance (target_path, basestring):
     target_path = os.path.abspath (target_path)
   else:
     target_path = [os.path.abspath (i) for i in target_path]
-  
+
   flags = 0
   if allow_undo: flags |= shellcon.FOF_ALLOWUNDO
   if no_confirm: flags |= shellcon.FOF_NOCONFIRMATION
   if rename_on_collision: flags |= shellcon.FOF_RENAMEONCOLLISION
   if silent: flags |= shellcon.FOF_SILENT
-  
+
   result, n_aborted = shell.SHFileOperation (
     (hWnd or 0, operation, source_path, target_path, flags, None, None)
   )
-  if result <> 0:
+  if result != 0:
     raise x_winshell, result
   elif n_aborted:
     raise x_winshell, "%d operations were aborted by the user" % n_aborted
 
 def copy_file (
-  source_path, 
-  target_path, 
+  source_path,
+  target_path,
   allow_undo=True,
   no_confirm=False,
   rename_on_collision=True,
@@ -152,25 +153,25 @@ def copy_file (
   """Perform a shell-based file copy. Copying in
    this way allows the possibility of undo, auto-renaming,
    and showing the "flying file" animation during the copy.
-   
+
   The default options allow for undo, don't automatically
    clobber on a name clash, automatically rename on collision
    and display the animation.
   """
   _file_operation (
-    shellcon.FO_COPY, 
-    source_path, 
-    target_path, 
-    allow_undo, 
-    no_confirm, 
-    rename_on_collision, 
-    silent, 
+    shellcon.FO_COPY,
+    source_path,
+    target_path,
+    allow_undo,
+    no_confirm,
+    rename_on_collision,
+    silent,
     hWnd
   )
-  
+
 def move_file (
-  source_path, 
-  target_path, 
+  source_path,
+  target_path,
   allow_undo=True,
   no_confirm=False,
   rename_on_collision=True,
@@ -180,25 +181,25 @@ def move_file (
   """Perform a shell-based file move. Moving in
    this way allows the possibility of undo, auto-renaming,
    and showing the "flying file" animation during the copy.
-   
+
   The default options allow for undo, don't automatically
    clobber on a name clash, automatically rename on collision
    and display the animation.
   """
   _file_operation (
-    shellcon.FO_MOVE, 
-    source_path, 
-    target_path, 
-    allow_undo, 
-    no_confirm, 
-    rename_on_collision, 
-    silent, 
+    shellcon.FO_MOVE,
+    source_path,
+    target_path,
+    allow_undo,
+    no_confirm,
+    rename_on_collision,
+    silent,
     hWnd
   )
-  
+
 def rename_file (
-  source_path, 
-  target_path, 
+  source_path,
+  target_path,
   allow_undo=True,
   no_confirm=False,
   rename_on_collision=True,
@@ -208,24 +209,24 @@ def rename_file (
   """Perform a shell-based file rename. Renaming in
    this way allows the possibility of undo, auto-renaming,
    and showing the "flying file" animation during the copy.
-   
+
   The default options allow for undo, don't automatically
    clobber on a name clash, automatically rename on collision
    and display the animation.
   """
   _file_operation (
-    shellcon.FO_RENAME, 
-    source_path, 
-    target_path, 
-    allow_undo, 
-    no_confirm, 
-    rename_on_collision, 
-    silent, 
+    shellcon.FO_RENAME,
+    source_path,
+    target_path,
+    allow_undo,
+    no_confirm,
+    rename_on_collision,
+    silent,
     hWnd
   )
-  
+
 def delete_file (
-  source_path, 
+  source_path,
   allow_undo=True,
   no_confirm=False,
   rename_on_collision=True,
@@ -233,25 +234,25 @@ def delete_file (
   hWnd=None
 ):
   """Perform a shell-based file delete. Deleting in
-   this way uses the system recycle bin, allows the 
-   possibility of undo, and showing the "flying file" 
+   this way uses the system recycle bin, allows the
+   possibility of undo, and showing the "flying file"
    animation during the delete.
-   
+
   The default options allow for undo, don't automatically
    clobber on a name clash, automatically rename on collision
    and display the animation.
   """
   _file_operation (
-    shellcon.FO_DELETE, 
-    source_path, 
-    None, 
-    allow_undo, 
-    no_confirm, 
-    rename_on_collision, 
-    silent, 
+    shellcon.FO_DELETE,
+    source_path,
+    None,
+    allow_undo,
+    no_confirm,
+    rename_on_collision,
+    silent,
     hWnd
   )
-  
+
 def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("",0), Description = ""):
   """Create a Windows shortcut:
 
@@ -381,21 +382,25 @@ def structured_storage (filename):
 
 if __name__ == '__main__':
   try:
-    print 'Desktop =>', desktop ()
-    print 'Common Desktop =>', desktop (1)
-    print 'Application Data =>', application_data ()
-    print 'Common Application Data =>', application_data (1)
-    print 'Bookmarks =>', bookmarks ()
-    print 'Common Bookmarks =>', bookmarks (1)
-    print 'Start Menu =>', start_menu ()
-    print 'Common Start Menu =>', start_menu (1)
-    print 'Programs =>', programs ()
-    print 'Common Programs =>', programs (1)
-    print 'Startup =>', startup ()
-    print 'Common Startup =>', startup (1)
-    print 'My Documents =>', my_documents ()
-    print 'Recent =>', recent ()
-    print 'SendTo =>', sendto ()
+    raw_input
+  except NameError:
+    raw_input = input
+  try:
+    print ('Desktop =>', desktop ())
+    print ('Common Desktop =>', desktop (1))
+    print ('Application Data =>', application_data ())
+    print ('Common Application Data =>', application_data (1))
+    print ('Bookmarks =>', bookmarks ())
+    print ('Common Bookmarks =>', bookmarks (1))
+    print ('Start Menu =>', start_menu ())
+    print ('Common Start Menu =>', start_menu (1))
+    print ('Programs =>', programs ())
+    print ('Common Programs =>', programs (1))
+    print ('Startup =>', startup ())
+    print ('Common Startup =>', startup (1))
+    print ('My Documents =>', my_documents ())
+    print ('Recent =>', recent ())
+    print ('SendTo =>', sendto ())
   finally:
     raw_input ("Press enter...")
 
