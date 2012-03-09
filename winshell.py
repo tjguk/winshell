@@ -20,10 +20,6 @@ Copyright Tim Golden <winshell@timgolden.me.uk> 25th November 2003 - 2012
 Licensed under the (GPL-compatible) MIT License:
 http://www.opensource.org/licenses/mit-license.php
 
-9th Mar 2012 0.3 Upgraded for Py3.x
-9th Nov 2005  0.2  . License changed to MIT
-                   . Added functionality using SHFileOperation
-25th Nov 2003 0.1  . Initial release by Tim Golden
 """
 
 __VERSION__ = "0.3"
