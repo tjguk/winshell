@@ -147,12 +147,12 @@ def copy_file (
   hWnd=None
 ):
   """Perform a shell-based file copy. Copying in
-   this way allows the possibility of undo, auto-renaming,
-   and showing the "flying file" animation during the copy.
+  this way allows the possibility of undo, auto-renaming,
+  and showing the "flying file" animation during the copy.
 
   The default options allow for undo, don't automatically
-   clobber on a name clash, automatically rename on collision
-   and display the animation.
+  clobber on a name clash, automatically rename on collision
+  and display the animation.
   """
   _file_operation (
     shellcon.FO_COPY,
@@ -175,12 +175,12 @@ def move_file (
   hWnd=None
 ):
   """Perform a shell-based file move. Moving in
-   this way allows the possibility of undo, auto-renaming,
-   and showing the "flying file" animation during the copy.
+  this way allows the possibility of undo, auto-renaming,
+  and showing the "flying file" animation during the copy.
 
   The default options allow for undo, don't automatically
-   clobber on a name clash, automatically rename on collision
-   and display the animation.
+  clobber on a name clash, automatically rename on collision
+  and display the animation.
   """
   _file_operation (
     shellcon.FO_MOVE,
@@ -203,12 +203,12 @@ def rename_file (
   hWnd=None
 ):
   """Perform a shell-based file rename. Renaming in
-   this way allows the possibility of undo, auto-renaming,
-   and showing the "flying file" animation during the copy.
+  this way allows the possibility of undo, auto-renaming,
+  and showing the "flying file" animation during the copy.
 
   The default options allow for undo, don't automatically
-   clobber on a name clash, automatically rename on collision
-   and display the animation.
+  clobber on a name clash, automatically rename on collision
+  and display the animation.
   """
   _file_operation (
     shellcon.FO_RENAME,
@@ -225,18 +225,16 @@ def delete_file (
   source_path,
   allow_undo=True,
   no_confirm=False,
-  rename_on_collision=True,
   silent=False,
   hWnd=None
 ):
   """Perform a shell-based file delete. Deleting in
-   this way uses the system recycle bin, allows the
-   possibility of undo, and showing the "flying file"
-   animation during the delete.
+  this way uses the system recycle bin, allows the
+  possibility of undo, and showing the "flying file"
+  animation during the delete.
 
   The default options allow for undo, don't automatically
-   clobber on a name clash, automatically rename on collision
-   and display the animation.
+  clobber on a name clash and display the animation.
   """
   _file_operation (
     shellcon.FO_DELETE,
@@ -244,7 +242,7 @@ def delete_file (
     None,
     allow_undo,
     no_confirm,
-    rename_on_collision,
+    False,
     silent,
     hWnd
   )
