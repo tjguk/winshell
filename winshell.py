@@ -30,6 +30,14 @@ from win32com.shell import shell, shellcon
 import win32api
 import pythoncom
 
+#
+# 2->3 compatibilty workarounds
+#
+try:
+  basestring
+except NameError:
+  basestring = str
+
 class x_winshell (Exception):
   pass
 

@@ -94,14 +94,14 @@ class TestFileOperations (unittest.TestCase):
     to_temppath = to_temppath or self.to_temppath
     from_filepath = tempfile.mktemp (prefix="from_", dir=from_temppath)
     if create_from:
-      with open (from_filepath, "w") as f:
+      with open (from_filepath, "wb") as f:
         f.write (os.urandom (32))
       self.assertTrue (os.path.exists (from_filepath))
     else:
       self.assertFalse (os.path.exists (from_filepath))
     to_filepath = tempfile.mktemp (prefix="to_", dir=to_temppath)
     if create_to:
-      open (to_filepath, "w").close ()
+      open (to_filepath, "wb").close ()
       self.assertTrue (os.path.exists (to_filepath))
     else:
       self.assertFalse (os.path.exists (to_filepath))
@@ -216,7 +216,6 @@ class TestShortcuts (unittest.TestCase):
   def test_create_shortcut (self):
     shortcut_filepath = os.path.join (self.temppath, "python.lnk")
     self.assertFalse (os.path.exists (shortcut_filepath))
-    print shortcut_filepath
     winshell.CreateShortcut (
       Path=shortcut_filepath,
       Target=sys.executable,
