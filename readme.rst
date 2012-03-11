@@ -9,7 +9,7 @@ Certain aspects of the Windows user interface are grouped by
 Microsoft as Shell functions. These include the Desktop, shortcut
 icons, special folders (such as My Documents) and a few other things.
 
-These are mostly available via the shell module of the win32all
+These are mostly available via the shell module of the pywin32
 extensions, but whenever I need to use them, I've forgotten the
 various constants and so on.
 
@@ -30,24 +30,18 @@ recycle bin.
 Where do I get it?
 ==================
 
-http://timgolden.me.uk/python/winshell.html
+* Source: https://github.com/tjguk/winshell
+
+* Release: http://pypi.python.org/pypi/winshell
 
 
 Copyright & License?
 ====================
 
-(c) Tim Golden <mail@timgolden.me.uk> 25th November 2003
+(c) Copyright Tim Golden <mail@timgolden.me.uk> 2012
 Licensed under the (GPL-compatible) MIT License:
 http://www.opensource.org/licenses/mit-license.php
 
-
-How do I install it?
-====================
-
-When all's said and done, it's just a module. But for those
-who like setup programs:
-
-python setup.py install
 
 
 Prerequisites
@@ -63,7 +57,7 @@ up-and-running already. Otherwise::
 
   pywin32 (was win32all)
   ----------------------
-  http://starship.python.net/crew/mhammond/win32/Downloads.html
+  http://sourceforge.net/projects/pywin32/
 
 
 How do I use it?
