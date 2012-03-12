@@ -124,10 +124,11 @@ class TestFileOperations (unittest.TestCase):
     winshell.copy_file (from_filepath, to_filepath, rename_on_collision=True)
     self.assertTrue (os.path.exists (to_filepath))
     self.assertFalse (self.files_are_equal (from_filepath, to_filepath))
-    copy_of_filepath = os.path.join (
-      os.path.dirname (to_filepath),
-      "Copy of " + os.path.basename (from_filepath)
-    )
+
+    for filename in set (os.listdir (os.path.dirname (to_filepath))) - set ([os.path.basename (to_filepath)]):
+      copy_of_filepath = os.path.join (os.path.dirname (to_filepath), filename)
+      break
+
     self.assertTrue (self.files_are_equal (from_filepath, copy_of_filepath))
 
   def test_simple_move (self):
@@ -145,10 +146,11 @@ class TestFileOperations (unittest.TestCase):
     with open (from_filepath, "rb") as f:
       from_contents = f.read ()
     winshell.move_file (from_filepath, to_filepath, rename_on_collision=True)
-    copy_of_filepath = os.path.join (
-      os.path.dirname (to_filepath),
-      "Copy of " + os.path.basename (from_filepath)
-    )
+
+    for filename in set (os.listdir (os.path.dirname (to_filepath))) - set ([os.path.basename (to_filepath)]):
+      copy_of_filepath = os.path.join (os.path.dirname (to_filepath), filename)
+      break
+
     self.assertFalse (os.path.exists (from_filepath))
     self.assertTrue (os.path.exists (to_filepath))
     with open (to_filepath, "rb") as f:
@@ -175,10 +177,11 @@ class TestFileOperations (unittest.TestCase):
     with open (from_filepath, "rb") as f:
       from_contents = f.read ()
     winshell.move_file (from_filepath, to_filepath, rename_on_collision=True)
-    copy_of_filepath = os.path.join (
-      os.path.dirname (to_filepath),
-      "Copy of " + os.path.basename (from_filepath)
-    )
+
+    for filename in set (os.listdir (os.path.dirname (to_filepath))) - set ([os.path.basename (to_filepath)]):
+      copy_of_filepath = os.path.join (os.path.dirname (to_filepath), filename)
+      break
+
     self.assertFalse (os.path.exists (from_filepath))
     self.assertTrue (os.path.exists (to_filepath))
     with open (to_filepath, "rb") as f:
