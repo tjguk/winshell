@@ -42,11 +42,11 @@ class x_winshell (Exception):
   pass
 
 #
-# Although this can be done in one call, Win9x didn't
-#  support it, so I added this workaround.
+# This was originally a workaround when Win9x didn't implement SHGetFolderPath.
+# Now it's just a convenience which supplies the default parameters.
 #
 def get_path (folder_id):
-  return shell.SHGetPathFromIDList (shell.SHGetSpecialFolderLocation (0, folder_id))
+  return shell.SHGetFolderPath (0, folder_id, None, 0)
 
 def desktop (common=0):
   "What folder is equivalent to the current desktop?"
