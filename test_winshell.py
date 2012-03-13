@@ -82,6 +82,23 @@ class TestFolderSupport (unittest.TestCase):
       winshell.get_folder_by_name ("XXX")
     self.assertRaises (winshell.x_winshell, _get_nonexistent_folder)
 
+  def test_folder_by_int (self):
+    self.assertEqual (winshell.folder (shellcon.CSIDL_APPDATA), winshell.get_path (shellcon.CSIDL_APPDATA))
+
+  def test_folder_by_name (self):
+    self.assertEqual (winshell.folder ("CSIDL_APPDATA"), winshell.get_path (shellcon.CSIDL_APPDATA))
+
+  def test_folder_by_name_no_prefix (self):
+    self.assertEqual (winshell.folder ("APPDATA"), winshell.get_path (shellcon.CSIDL_APPDATA))
+
+  def test_folder_by_name_lowercase (self):
+    self.assertEqual (winshell.folder ("appdata"), winshell.get_path (shellcon.CSIDL_APPDATA))
+
+  def test_folder_nonexistent (self):
+    def _get_nonexistent_folder ():
+      winshell.folder ("XXX")
+    self.assertRaises (winshell.x_winshell, _get_nonexistent_folder)
+
 class TestFileOperations (unittest.TestCase):
   #
   # It's also not easy to detect the more user-interfacey aspects of the
