@@ -22,23 +22,58 @@ folder.
 Specific Functions
 ------------------
 
-..  autofunction:: desktop
-..  autofunction:: common_desktop
-..  autofunction:: application_data
-..  autofunction:: favourites
-..  autofunction:: bookmarks
-..  autofunction:: start_menu
-..  autofunction:: programs
-..  autofunction:: startup
-..  autofunction:: personal_folder
-..  autofunction:: my_documents
-..  autofunction:: recent
-..  autofunction:: sendto
+.. py:function:: desktop(common=True)
+
+   Return the desktop folder
+
+   :param common: whether to return the All Users folder
+   :returns: the desktop folder
+
+There are equivalent convenience functions for:
+
+* application_data
+* favourites
+* bookmarks (alias of favourites)
+* start_menu
+* programs
+* startup
+* personal_folder
+* my_documents (alias of personal_folder)
+* recent
+* sendto
+
+The last three do not offer an "All Users" option via
+the `common` parameter.
 
 General Functions
 -----------------
 
-..  autofunction:: folder
+..  py:function:: folder(folder)
+
+    Return the special folder corresponding to `folder`.
+
+    :param folder: either the CSIDL_ numeric constant or the corresponding name,
+                  eg "appdata" for CSIDL_APPDATA or "desktop" for CSIDL_DESKTOP.
+    :returns: the corresponding filesystem folder
+
+Example
+-------
+
+Copy all the shortcuts on your desktop to a newly-created folder in
+the root of your profile::
+
+  import os, sys
+  import glob
+  import winshell
+  profile = winshell.folder ("profile")
+  new_folder = os.path.join (profile, "TESTING")
+  os.mkdir (new_folder)
+  for f in glob.glob (os.path.join (winshell.desktop (), "*.lnk")):
+    print ("Copying %s to %s" % (f, new_folder))
+    winshell.copy_file (f, new_folder)
+
+NB We're not doing anything fancy with the shell & shortcuts in this
+example, simply assuming that shortcuts are files with an ".lnk" extension.
 
 References
 ----------
