@@ -21,6 +21,6 @@ setup (
   url = "https://github.com/tjguk/winshell",
   license = "http://www.opensource.org/licenses/mit-license.php",
   py_modules = ["winshell"],
-  long_description=open ("readme.rst").read ()
+  long_description=open ("docs/readme.rst").read ()
 )
 
