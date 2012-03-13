@@ -48,6 +48,35 @@ class x_winshell (Exception):
 def get_path (folder_id):
   return shell.SHGetFolderPath (0, folder_id, None, 0)
 
+def get_folder_by_name (name):
+  name = name.upper ()
+  if not name.startswith ("CSIDL"):
+    name = "CSIDL_" + name
+  try:
+    return get_path (getattr (shellcon, name))
+  except AttributeError:
+    raise x_winshell ("No such CSIDL constant %s" % name)
+
+class Folders (object):
+
+  prefix = "CSIDL_"
+
+  def __getitem__ (self, item):
+    if isinstance (item, int):
+      return get_path (item)
+    else:
+      return get_folder_by_name (unicode (item))
+
+  def keys (self):
+    for name in dir (shellcon):
+      if name.startswith (self.prefix):
+        yield name[len (self.prefix):]
+  __iter__ = keys
+
+  def items (self):
+    for name in self.keys ():
+      yield name, get_folder_by_name (name)
+
 def desktop (common=0):
   "What folder is equivalent to the current desktop?"
   return get_path ((shellcon.CSIDL_DESKTOP, shellcon.CSIDL_COMMON_DESKTOPDIRECTORY)[common])
