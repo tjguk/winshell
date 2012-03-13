@@ -41,8 +41,8 @@ References
 
 ..  seealso::
 
-    `Shortcuts Overview <http://example.com>`_
-      Shell shortcuts on MSDN
+    `Shell Links Overview <http://msdn.microsoft.com/en-us/library/windows/desktop/bb776891%28v=vs.85%29.aspx>`_
+      Shell Links on MSDN
 
 To Do
 -----
