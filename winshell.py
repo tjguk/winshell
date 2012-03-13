@@ -351,9 +351,8 @@ PROPERTIES = (
 )
 
 #
-# This was taken from someone else's example,
-#  but I can't find where. If you know, please
-#  tell me so I can give due credit.
+# This was taken from someone else's example, but I can't find where.
+# If you know, please tell me so I can give due credit.
 #
 def structured_storage (filename):
   """Pick out info from MS documents with embedded

@@ -80,8 +80,8 @@ References
 
 ..  seealso::
 
-    `Special Folders <http://msdn.microsoft.com/en-us/library/windows/desktop/bb762494%28v=vs.85%29.aspx>`_
-      Documentation on microsoft.com for well-known folders
+    `Special Folders <http://example.com>`_
+      Well-known folders on MSDN
 
 To Do
 -----

@@ -41,5 +41,11 @@ References
 
 ..  seealso::
 
-    `The SHFileOperation function <http://msdn.microsoft.com/en-us/library/windows/desktop/bb762164%28v=vs.85%29.aspx>`_
-      Documentation on microsoft.com for SHFileOperation
+    `Shortcuts Overview <http://example.com>`_
+      Shell shortcuts on MSDN
+
+To Do
+-----
+
+* More general-purpose implementation
+* Allow reading & writing of shortcuts, possibly via a class mechanism

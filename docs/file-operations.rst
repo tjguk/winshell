@@ -40,5 +40,5 @@ References
 
 ..  seealso::
 
-    `The SHFileOperation function <http://msdn.microsoft.com/en-us/library/windows/desktop/bb762164%28v=vs.85%29.aspx>`_
-      Documentation on microsoft.com for SHFileOperation
+    `The SHFileOperation function <http://example.com>`_
+      The SHFileOperation function on MSDN
