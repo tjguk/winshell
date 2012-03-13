@@ -1,14 +1,12 @@
-**********************
-Python winshell Module
-**********************
+winshell Module
+***************
 
 What is it?
-===========
+-----------
 
 Certain aspects of the Windows user interface are grouped by
 Microsoft as Shell functions. These include the Desktop, shortcut
 icons, special folders (such as My Documents) and a few other things.
-
 These are mostly available via the shell module of the pywin32
 extensions, but whenever I need to use them, I've forgotten the
 various constants and so on.
@@ -26,41 +24,33 @@ the heading of shell-related, for example moving & copying files
 with animated progress icons and deleting them into the system
 recycle bin.
 
+The module has three main parts:
+
+* :doc:`special-folders`
+* File Operations
+* Structured Storage
+
 
 Where do I get it?
-==================
+------------------
 
 * Source: https://github.com/tjguk/winshell
-
 * Release: http://pypi.python.org/pypi/winshell
 
 
 Copyright & License?
-====================
+--------------------
 
 (c) Copyright Tim Golden <mail@timgolden.me.uk> 2012
 Licensed under the (GPL-compatible) MIT License:
 http://www.opensource.org/licenses/mit-license.php
 
 
-
 Prerequisites
-=============
+-------------
 
-If you're running a recent Python (2.1+) on a recent Windows (2k, 2k3, XP)
-and you have Mark Hammond's win32 extensions installed, you're probably
-up-and-running already. Otherwise::
+The module has been tested on versions of Python from 2.4 to 3.2. It may work
+on older (or newer) versions but I don't have those installed for testing.
+It's tested with the most recent pywin32 extensions, but the functionality
+it uses from those libraries has been in place for many versions.
 
-  Python
-  ------
-  http://www.python.org/ (just in case you didn't know)
-
-  pywin32 (was win32all)
-  ----------------------
-  http://sourceforge.net/projects/pywin32/
-
-
-How do I use it?
-================
-
-There are (brief) examples at: http://timgolden.me.uk/python/winshell.html
