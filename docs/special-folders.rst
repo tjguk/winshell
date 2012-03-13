@@ -52,7 +52,7 @@ General Functions
 
     Return the special folder corresponding to `folder`.
 
-    :param folder: either the CSIDL_ numeric constant or the corresponding name,
+    :param folder: either the CSIDL numeric constant or the corresponding name,
                   eg "appdata" for CSIDL_APPDATA or "desktop" for CSIDL_DESKTOP.
     :returns: the corresponding filesystem folder
 
