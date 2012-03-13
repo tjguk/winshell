@@ -12,6 +12,17 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 
+long_description = """winshell
+========
+
+The winshell module is a light wrapper around the Windows shell functionality.
+
+It includes convenience functions for accessing special folders, for using
+the shell's file copy, rename & delete functionality, and a certain amount
+of support for structured storage.
+
+Docs are hosted at: http://winshell.readthedocs.org/
+"""
 setup (
   name = "winshell",
   version = "0.4",
@@ -21,6 +32,5 @@ setup (
   url = "https://github.com/tjguk/winshell",
   license = "http://www.opensource.org/licenses/mit-license.php",
   py_modules = ["winshell"],
-  long_description=open ("docs/readme.rst").read ()
+  long_description=long_description
 )
-
