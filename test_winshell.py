@@ -66,35 +66,21 @@ class TestSpecialFolders (unittest.TestCase):
 class TestFolderSupport (unittest.TestCase):
 
   def test_get_path (self):
-    self.assertEquals (winshell.get_path (shellcon.CSIDL_APPDATA), os.environ['APPDATA'])
+    self.assertEqual (winshell.get_path (shellcon.CSIDL_APPDATA), os.environ['APPDATA'])
 
   def test_get_folder_by_name (self):
-    self.assertEquals (winshell.get_folder_by_name ("CSIDL_APPDATA"), os.environ['APPDATA'])
+    self.assertEqual (winshell.get_folder_by_name ("CSIDL_APPDATA"), os.environ['APPDATA'])
 
   def test_get_folder_by_name_no_prefix (self):
-    self.assertEquals (winshell.get_folder_by_name ("APPDATA"), os.environ['APPDATA'])
+    self.assertEqual (winshell.get_folder_by_name ("APPDATA"), os.environ['APPDATA'])
 
   def test_get_folder_by_name_lowercase (self):
-    self.assertEquals (winshell.get_folder_by_name ("appdata"), os.environ['APPDATA'])
+    self.assertEqual (winshell.get_folder_by_name ("appdata"), os.environ['APPDATA'])
 
   def test_get_folder_by_name_nonexistent (self):
     def _get_nonexistent_folder ():
       winshell.get_folder_by_name ("XXX")
     self.assertRaises (winshell.x_winshell, _get_nonexistent_folder)
-
-class TestFolders (unittest.TestCase):
-
-  #
-  # Fixtures
-  #
-  def setUp (self):
-    self.folders = winshell.Folders ()
-
-  #
-  # Tests
-  #
-  def test_getitem_int (self):
-
 
 class TestFileOperations (unittest.TestCase):
   #

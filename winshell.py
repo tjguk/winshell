@@ -22,7 +22,7 @@ http://www.opensource.org/licenses/mit-license.php
 
 """
 
-__VERSION__ = "0.3"
+__VERSION__ = "0.4"
 
 import os, sys
 from win32com import storagecon
@@ -37,6 +37,10 @@ try:
   basestring
 except NameError:
   basestring = str
+try:
+  unicode
+except NameError:
+  unicode = str
 
 class x_winshell (Exception):
   pass
@@ -57,25 +61,11 @@ def get_folder_by_name (name):
   except AttributeError:
     raise x_winshell ("No such CSIDL constant %s" % name)
 
-class Folders (object):
-
-  prefix = "CSIDL_"
-
-  def __getitem__ (self, item):
-    if isinstance (item, int):
-      return get_path (item)
-    else:
-      return get_folder_by_name (unicode (item))
-
-  def keys (self):
-    for name in dir (shellcon):
-      if name.startswith (self.prefix):
-        yield name[len (self.prefix):]
-  __iter__ = keys
-
-  def items (self):
-    for name in self.keys ():
-      yield name, get_folder_by_name (name)
+def folder (folder):
+  if isinstance (folder, int):
+    return get_path (folder)
+  else:
+    return get_folder_by_name (unicode (folder))
 
 def desktop (common=0):
   "What folder is equivalent to the current desktop?"
