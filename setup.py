@@ -14,7 +14,7 @@ classifiers = [
 
 setup (
   name = "winshell",
-  version = "0.3",
+  version = "0.4",
   description = "Windows shell functions",
   author = "Tim Golden",
   author_email = "mail@timgolden.me.uk",
