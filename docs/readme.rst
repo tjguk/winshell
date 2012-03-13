@@ -1,5 +1,5 @@
-winshell Module
-***************
+The winshell Module
+*******************
 
 What is it?
 -----------
@@ -24,10 +24,11 @@ the heading of shell-related, for example moving & copying files
 with animated progress icons and deleting them into the system
 recycle bin.
 
-The module has three main parts:
+The module offers four areas of functionality:
 
 * :doc:`special-folders`
-* File Operations
+* :doc:`file-operations`
+* :doc:`shortcuts`
 * Structured Storage
 
 

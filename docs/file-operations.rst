@@ -10,6 +10,9 @@ to allow files to be copied, renamed and deleted. This includes
 features such as an animated progress display, automatic renaming
 on conflict ("Copy of...") and the ability to use the Recycle Bin.
 
+Functions
+---------
+
 Three functions are exposed with very similar signatures:
 
 .. py:function:: copy_file(source_path, target_path, allow_undo=True, no_confirm=False, rename_on_collision=True, silent=False, hWnd=None)

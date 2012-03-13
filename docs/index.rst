@@ -1,5 +1,5 @@
-Welcome to winshell's documentation!
-====================================
+winshell
+========
 
 Contents:
 
@@ -9,4 +9,5 @@ Contents:
    readme
    special-folders
    file-operations
+   shortcuts
    structured-storage
