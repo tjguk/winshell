@@ -132,8 +132,11 @@ class TestFileOperations (unittest.TestCase):
     to_temppath = to_temppath or self.to_temppath
     from_filepath = tempfile.mktemp (prefix="from_", dir=from_temppath)
     if create_from:
-      with open (from_filepath, "wb") as f:
+      f = open (from_filepath, "wb")
+      try:
         f.write (os.urandom (32))
+      finally:
+        f.close ()
       self.assertTrue (os.path.exists (from_filepath))
     else:
       self.assertFalse (os.path.exists (from_filepath))
@@ -171,18 +174,27 @@ class TestFileOperations (unittest.TestCase):
 
   def test_simple_move (self):
     from_filepath, to_filepath = self.tempfiles (create_from=True, create_to=False)
-    with open (from_filepath, "rb") as f:
+    f = open (from_filepath, "rb")
+    try:
       from_contents = f.read ()
+    finally:
+      f.close ()
     winshell.move_file (from_filepath, to_filepath)
     self.assertFalse (os.path.exists (from_filepath))
     self.assertTrue (os.path.exists (to_filepath))
-    with open (to_filepath, "rb") as f:
+    f = open (to_filepath, "rb")
+    try:
       self.assertEqual (from_contents, f.read ())
+    finally:
+      f.close ()
 
   def test_move_with_rename (self):
     from_filepath, to_filepath = self.tempfiles (create_from=True, create_to=True)
-    with open (from_filepath, "rb") as f:
+    f = open (from_filepath, "rb")
+    try:
       from_contents = f.read ()
+    finally:
+      f.close ()
     winshell.move_file (from_filepath, to_filepath, rename_on_collision=True)
 
     for filename in set (os.listdir (os.path.dirname (to_filepath))) - set ([os.path.basename (to_filepath)]):
@@ -191,29 +203,44 @@ class TestFileOperations (unittest.TestCase):
 
     self.assertFalse (os.path.exists (from_filepath))
     self.assertTrue (os.path.exists (to_filepath))
-    with open (to_filepath, "rb") as f:
+    f = open (to_filepath, "rb")
+    try:
       self.assertNotEqual (from_contents, f.read ())
+    finally:
+      f.close ()
     self.assertTrue (os.path.exists (copy_of_filepath))
-    with open (copy_of_filepath, "rb") as f:
+    f = open (copy_of_filepath, "rb")
+    try:
       self.assertEqual (from_contents, f.read ())
+    finally:
+      f.close ()
 
   def test_simple_rename (self):
     from_filepath, to_filepath = self.tempfiles (
       create_from=True, create_to=False,
       to_temppath=self.from_temppath
     )
-    with open (from_filepath, "rb") as f:
+    f = open (from_filepath, "rb")
+    try:
       from_contents = f.read ()
+    finally:
+      f.close ()
     winshell.rename_file (from_filepath, to_filepath)
     self.assertFalse (os.path.exists (from_filepath))
     self.assertTrue (os.path.exists (to_filepath))
-    with open (to_filepath, "rb") as f:
+    f = open (to_filepath, "rb")
+    try:
       self.assertEqual (from_contents, f.read ())
+    finally:
+      f.close ()
 
   def test_rename_with_rename (self):
     from_filepath, to_filepath = self.tempfiles (create_from=True, create_to=True, to_temppath=self.from_temppath)
-    with open (from_filepath, "rb") as f:
+    f = open (from_filepath, "rb")
+    try:
       from_contents = f.read ()
+    finally:
+      f.close ()
     winshell.move_file (from_filepath, to_filepath, rename_on_collision=True)
 
     for filename in set (os.listdir (os.path.dirname (to_filepath))) - set ([os.path.basename (to_filepath)]):
@@ -222,11 +249,17 @@ class TestFileOperations (unittest.TestCase):
 
     self.assertFalse (os.path.exists (from_filepath))
     self.assertTrue (os.path.exists (to_filepath))
-    with open (to_filepath, "rb") as f:
+    f = open (to_filepath, "rb")
+    try:
       self.assertNotEqual (from_contents, f.read ())
+    finally:
+      f.close ()
     self.assertTrue (os.path.exists (copy_of_filepath))
-    with open (copy_of_filepath, "rb") as f:
+    f = open (copy_of_filepath, "rb")
+    try:
       self.assertEqual (from_contents, f.read ())
+    finally:
+      f.close ()
 
   def test_simple_delete (self):
     from_filepath, to_filepath = self.tempfiles (
