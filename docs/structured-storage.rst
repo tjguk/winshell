@@ -36,7 +36,7 @@ References
 
 ..  seealso::
 
-    `Structured Storage <http://example.com>`_
+    `Structured Storage <http://msdn.microsoft.com/en-us/library/windows/desktop/aa380369%28v=vs.85%29.aspx>`_
       Structured storage on MSDN
 
 To Do
