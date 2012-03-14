@@ -332,6 +332,9 @@ class Shortcut (object):
       output.append (u"%s: %s" % (attribute, getattr (self, attribute)))
     return dumped (u"\n".join (output), level)
 
+  def dump (self, level=0):
+    print (self.dumped (level=level))
+
   @classmethod
   def from_lnk (cls, lnk_filepath):
     return cls (lnk_filepath)
@@ -398,18 +401,20 @@ class Shortcut (object):
     self._shell_link.SetWorkingDirectory (working_directory)
   working_directory = property (_get_working_directory, _set_working_directory)
 
-  def write (self, filepath=UNSET):
+  def write (self, filepath=None):
     if not filepath:
       filepath = self.filepath
     if filepath is None:
       raise x_shell (errmsg="Must specify a filepath for an unsaved shortcut")
 
-    wrapped (
+    print "About to save to", filepath
+    ipersistfile = wrapped (
       self._shell_link.QueryInterface,
       pythoncom.IID_IPersistFile
-    ).Save (
-      self.filepath,
-      filepath == self.filepath
+    )
+    ipersistfile.Save (
+      filepath,
+      1 ## filepath == self.filepath
     )
 
     self.filepath = filepath
@@ -427,7 +432,7 @@ def shortcut (source=UNSET):
   else:
     return Shortcut.from_target (source)
 
-def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("",0), Description = ""):
+def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("", 0), Description = ""):
   """Create a Windows shortcut:
 
   Path - As what file should the shortcut be created?
@@ -445,21 +450,12 @@ def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("",0), D
     Description="Python Interpreter"
   )
   """
-  sh = pythoncom.CoCreateInstance (
-    shell.CLSID_ShellLink,
-    None,
-    pythoncom.CLSCTX_INPROC_SERVER,
-    shell.IID_IShellLink
-  )
-
-  sh.SetPath (Target)
-  sh.SetDescription (Description)
-  sh.SetArguments (Arguments)
-  sh.SetWorkingDirectory (StartIn)
-  sh.SetIconLocation (Icon[0], Icon[1])
-
-  persist = sh.QueryInterface (pythoncom.IID_IPersistFile)
-  persist.Save (Path, 1)
+  with shortcut (Target) as lnk:
+    lnk.path = Path
+    lnk.arguments = Arguments
+    lnk.working_directory = StartIn
+    lnk.icon_location = Icon
+    lnk.description = Description
 
 #
 # Constants for structured storage
