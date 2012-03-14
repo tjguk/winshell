@@ -314,15 +314,13 @@ class TestShortcuts (WinshellTestCase):
   #
   # Tests
   #
-  def test_create_shortcut (self):
-    shortcut_filepath = os.path.join (self.temppath, "python.lnk")
-    if os.path.exists (shortcut_filepath):
-      os.unlink (shortcut_filepath)
+  def test_CreateShortcut (self):
+    shortcut_filepath = os.path.join (self.temppath, "32710ee1-6df9-11e1-8401-ec55f9f656d6")
     self.assertFalse (os.path.exists (shortcut_filepath))
     winshell.CreateShortcut (
       Path=shortcut_filepath,
       Target=sys.executable,
-      Description = "Shortcut to Python"
+      Description = "32710ee1-6df9-11e1-8401-ec55f9f656d6"
     )
     self.assertTrue (os.path.exists (shortcut_filepath))
 
@@ -335,7 +333,7 @@ class TestShortcuts (WinshellTestCase):
   def test_factory_no_param (self):
     shortcut = winshell.shortcut ()
     self.assertIsInstance (shortcut, winshell.Shortcut)
-    self.assertFalse (shortcut)
+    self.assertTrue (shortcut.filepath is None)
 
   def test_factory_shortcut (self):
     shortcut = winshell.Shortcut ()
@@ -343,12 +341,13 @@ class TestShortcuts (WinshellTestCase):
 
   def test_factory_from_link (self):
     shortcut = winshell.shortcut (self.lnkpath)
-    self.assertTrue (shortcut)
+    self.assertFalse (shortcut.filepath is None)
+    self.assertEqualCI (shortcut.filepath, self.lnkpath)
     self.assertEqualCI (shortcut.path, self.targetpath)
 
   def test_factory_from_target (self):
     shortcut = winshell.shortcut (self.targetpath)
-    self.assertFalse (shortcut)
+    self.assertFalse (shortcut.filepath is None)
     self.assertEqualCI (shortcut.path, self.targetpath)
 
 if __name__ == '__main__':
