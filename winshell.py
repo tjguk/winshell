@@ -56,20 +56,20 @@ UNSET = Unset ()
 
 def indented (text, level, indent=2):
   """Take a multiline text and indent it as a block"""
-  return u"\n".join (u"%s%s" % (level * indent * u" ", s) for s in text.splitlines ())
+  return "\n".join ("%s%s" % (level * indent * " ", s) for s in text.splitlines ())
 
 def dumped (text, level, indent=2):
   """Put curly brackets round an indented text"""
-  return indented (u"{\n%s\n}" % indented (text, level+1, indent) or "None", level, indent)
+  return indented ("{\n%s\n}" % indented (text, level+1, indent) or "None", level, indent)
 
 def dumped_list (l, level, indent=2):
-  return dumped (u"\n".join (unicode (i)  for i in l), level, indent)
+  return dumped ("\n".join (unicode (i)  for i in l), level, indent)
 
 def dumped_dict (d, level, indent=2):
-  return dumped (u"\n".join (u"%s => %r" % (k, v) for (k, v) in d.iteritems ()), level, indent)
+  return dumped ("\n".join ("%s => %r" % (k, v) for (k, v) in d.items ()), level, indent)
 
 def dumped_flags (f, lookups, level, indent=2):
-  return dumped (u"\n".join (lookups.names_from_value (f)) or u"None", level, indent)
+  return dumped ("\n".join (lookups.names_from_value (f)) or "None", level, indent)
 
 #
 # This was originally a workaround when Win9x didn't implement SHGetFolderPath.
@@ -320,7 +320,7 @@ class Shortcut (object):
         self.filepath
       )
       self.loaded = True
-    for k, v in kwargs.iteritems ():
+    for k, v in kwargs.items ():
       setattr (self, k, v)
 
   def as_string (self):
@@ -331,8 +331,8 @@ class Shortcut (object):
     output.append (self.as_string ())
     output.append ("")
     for attribute in ["arguments", "description", "hotkey", "icon_location", "path", "show_cmd", "working_directory"]:
-      output.append (u"%s: %s" % (attribute, getattr (self, attribute)))
-    return dumped (u"\n".join (output), level)
+      output.append ("%s: %s" % (attribute, getattr (self, attribute)))
+    return dumped ("\n".join (output), level)
 
   def dump (self, level=0):
     print (self.dumped (level=level))
@@ -413,7 +413,7 @@ class Shortcut (object):
     if filepath is None:
       raise x_shell (errmsg="Must specify a filepath for an unsaved shortcut")
 
-    print "About to save to", filepath
+    print ("About to save to %s" % filepath)
     ipersistfile = wrapped (
       self._shell_link.QueryInterface,
       pythoncom.IID_IPersistFile
@@ -455,12 +455,13 @@ def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("", 0), 
     Description="Python Interpreter"
   )
   """
-  with shortcut (Target) as lnk:
-    lnk.path = Path
-    lnk.arguments = Arguments
-    lnk.working_directory = StartIn
-    lnk.icon_location = Icon
-    lnk.description = Description
+  lnk = shortcut (Target)
+  lnk.path = Path
+  lnk.arguments = Arguments
+  lnk.working_directory = StartIn
+  lnk.icon_location = Icon
+  lnk.description = Description
+  lnk.write ()
 
 #
 # Constants for structured storage

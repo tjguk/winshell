@@ -10,7 +10,18 @@ from win32com.shell import shell, shellcon
 
 import winshell
 
-class TestSpecialFolders (unittest.TestCase):
+class WinshellTestCase (unittest.TestCase):
+
+  def assertEqualCI (self, s1, s2, *args, **kwargs):
+    self.assertEqual (s1.lower (), s2.lower (), *args, **kwargs)
+
+  def assertIs (self, item1, item2, *args, **kwargs):
+    self.assertTrue (item1 is item2, *args, **kwargs)
+
+  def assertIsInstance (self, item, klass, *args, **kwargs):
+    self.assertTrue (isinstance (item, klass), *args, **kwargs)
+
+class TestSpecialFolders (WinshellTestCase):
   #
   # It's genuinely difficult to test the special-folders functionality
   # without simply reproducing the code in the module (which is largely
@@ -65,7 +76,7 @@ class TestSpecialFolders (unittest.TestCase):
   def test_sendto (self):
     self.assert_folder_exists ("sendto", winshell.sendto ())
 
-class TestFolderSupport (unittest.TestCase):
+class TestFolderSupport (WinshellTestCase):
 
   def test_get_path (self):
     self.assertEqual (winshell.get_path (shellcon.CSIDL_APPDATA), os.environ['APPDATA'])
@@ -101,7 +112,7 @@ class TestFolderSupport (unittest.TestCase):
       winshell.folder ("XXX")
     self.assertRaises (winshell.x_winshell, _get_nonexistent_folder)
 
-class TestFileOperations (unittest.TestCase):
+class TestFileOperations (WinshellTestCase):
   #
   # It's also not easy to detect the more user-interfacey aspects of the
   # shell behaviour: whether the "flying folders" animation is operating,
@@ -270,7 +281,7 @@ class TestFileOperations (unittest.TestCase):
     winshell.delete_file (from_filepath, no_confirm=True)
     self.assertFalse (os.path.exists (from_filepath))
 
-class TestShortcuts (unittest.TestCase):
+class TestShortcuts (WinshellTestCase):
 
   #
   # Fixtures
@@ -298,9 +309,6 @@ class TestShortcuts (unittest.TestCase):
   #
   # Support functions
   #
-  def assertEqualCI (self, s1, s2):
-    self.assertEqual (s1.lower (), s2.lower ())
-
 
   #
   # Tests
