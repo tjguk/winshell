@@ -457,10 +457,10 @@ def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("", 0), 
   """
   lnk = shortcut (Target)
   lnk.path = Path
-  lnk.arguments = Arguments
-  lnk.working_directory = StartIn
-  lnk.icon_location = Icon
-  lnk.description = Description
+  #~ lnk.arguments = Arguments
+  #~ lnk.working_directory = StartIn
+  #~ lnk.icon_location = Icon
+  #~ lnk.description = Description
   lnk.write ()
 
 #

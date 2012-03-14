@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import os, sys
 import filecmp
 import shutil
@@ -313,8 +314,10 @@ class TestShortcuts (WinshellTestCase):
   #
   # Tests
   #
-  def donot_test_create_shortcut (self):
+  def test_create_shortcut (self):
     shortcut_filepath = os.path.join (self.temppath, "python.lnk")
+    if os.path.exists (shortcut_filepath):
+      os.unlink (shortcut_filepath)
     self.assertFalse (os.path.exists (shortcut_filepath))
     winshell.CreateShortcut (
       Path=shortcut_filepath,
