@@ -311,6 +311,7 @@ class Shortcut (object):
       shell.IID_IShellLink
     )
     self.filepath = filepath
+    self.loaded = False
     if self.filepath and os.path.exists (self.filepath):
       wrapped (
         self._shell_link.QueryInterface,
@@ -318,11 +319,12 @@ class Shortcut (object):
       ).Load (
         self.filepath
       )
+      self.loaded = True
     for k, v in kwargs.iteritems ():
       setattr (self, k, v)
 
   def as_string (self):
-    return ("-> %s" % self.path) or "-unsaved-"
+    return "%s -> %s" % (self.filepath or "-unsaved-", self.path or "-no-target-")
 
   def dumped (self, level=0):
     output = []
@@ -349,6 +351,10 @@ class Shortcut (object):
       path=target_filepath,
       **kwargs
     )
+
+  def __bool__ (self):
+    return self.loaded
+  __nonzero__ = __bool__
 
   def __enter__ (self):
     return self
@@ -411,10 +417,9 @@ class Shortcut (object):
     ipersistfile = wrapped (
       self._shell_link.QueryInterface,
       pythoncom.IID_IPersistFile
-    )
-    ipersistfile.Save (
+    ).Save (
       filepath,
-      1 ## filepath == self.filepath
+      filepath == self.filepath
     )
 
     self.filepath = filepath
