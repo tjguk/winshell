@@ -334,7 +334,7 @@ class Shortcut (object):
     return dumped ("\n".join (output), level)
 
   def dump (self, level=0):
-    print (self.dumped (level=level))
+    sys.stdout.write (self.dumped (level=level))
 
   @classmethod
   def from_lnk (cls, lnk_filepath):

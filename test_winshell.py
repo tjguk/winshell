@@ -6,6 +6,17 @@ import tempfile
 import time
 import unittest
 
+try:
+  from StringIO import StringIO
+except ImportError:
+  from io import StringIO
+try:
+  exec ("with")
+except SyntaxError:
+  has_with = True
+else:
+  has_with = False
+
 import pythoncom
 from win32com.shell import shell, shellcon
 
@@ -349,6 +360,40 @@ class TestShortcuts (WinshellTestCase):
     shortcut = winshell.shortcut (self.targetpath)
     self.assertFalse (shortcut.filepath is None)
     self.assertEqualCI (shortcut.path, self.targetpath)
+
+  #
+  # Test utils
+  #
+  def test_dumped (self):
+    #
+    # Can't really do much for dump[ed] so just make sure they don't
+    # crash & burn
+    #
+    self.assertTrue (winshell.shortcut ().dumped ().startswith ("{\n  -unsaved-"))
+
+  def test_dump (self):
+    #
+    # Can't really do much for dump[ed] so just make sure they don't
+    # crash & burn
+    #
+    _stdout = sys.stdout
+    sys.stdout = StringIO ()
+    try:
+      winshell.shortcut ().dump ()
+      sys.stdout.seek (0)
+      self.assertTrue (sys.stdout.read ().startswith ("{\n  -unsaved-"))
+    finally:
+      sys.stdout = _stdout
+
+  if has_with:
+    def test_context_manager (self):
+      guid = "32710ee1-6df9-11e1-8401-ec55f9f656d6-2"
+      shortcut_filepath = os.path.join (self.temppath, guid + ".lnk")
+      self.assertFalse (os.path.exists (shortcut_filepath))
+      with winshell.shortcut (shortcut_filepath) as s:
+        s.path = self.targetpath
+        s.description = guid
+      self.assertTrue (os.path.exists (shortcut_filepath))
 
 if __name__ == '__main__':
   unittest.main ()
