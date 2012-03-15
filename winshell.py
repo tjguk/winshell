@@ -22,7 +22,7 @@ http://www.opensource.org/licenses/mit-license.php
 
 """
 
-__VERSION__ = "0.4"
+from __version__ import __VERSION__
 
 import os, sys
 from win32com import storagecon

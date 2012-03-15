@@ -1,4 +1,5 @@
 from distutils.core import setup
+import __version__
 
 classifiers = [
   'Development Status :: 5 - Production/Stable',
@@ -25,7 +26,7 @@ Docs are hosted at: http://winshell.readthedocs.org/
 """
 setup (
   name = "winshell",
-  version = "0.4.1",
+  version = __version__.__VERSION__,
   description = "Windows shell functions",
   author = "Tim Golden",
   author_email = "mail@timgolden.me.uk",
