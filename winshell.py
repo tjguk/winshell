@@ -46,6 +46,32 @@ class x_winshell (Exception):
   pass
 
 #
+# Stolen from winsys
+#
+def wrapped (fn, *args, **kwargs):
+  return fn (*args, **kwargs)
+
+class Unset (object): pass
+UNSET = Unset ()
+
+def indented (text, level, indent=2):
+  """Take a multiline text and indent it as a block"""
+  return "\n".join ("%s%s" % (level * indent * " ", s) for s in text.splitlines ())
+
+def dumped (text, level, indent=2):
+  """Put curly brackets round an indented text"""
+  return indented ("{\n%s\n}" % indented (text, level+1, indent) or "None", level, indent)
+
+def dumped_list (l, level, indent=2):
+  return dumped ("\n".join (unicode (i)  for i in l), level, indent)
+
+def dumped_dict (d, level, indent=2):
+  return dumped ("\n".join ("%s => %r" % (k, v) for (k, v) in d.items ()), level, indent)
+
+def dumped_flags (f, lookups, level, indent=2):
+  return dumped ("\n".join (lookups.names_from_value (f)) or "None", level, indent)
+
+#
 # This was originally a workaround when Win9x didn't implement SHGetFolderPath.
 # Now it's just a convenience which supplies the default parameters.
 #
@@ -274,7 +300,138 @@ def delete_file (
     hWnd
   )
 
-def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("",0), Description = ""):
+class Shortcut (object):
+
+  def __init__ (self, filepath=None, **kwargs):
+    self._shell_link = wrapped (
+      pythoncom.CoCreateInstance,
+      shell.CLSID_ShellLink,
+      None,
+      pythoncom.CLSCTX_INPROC_SERVER,
+      shell.IID_IShellLink
+    )
+    self.filepath = filepath
+    if self.filepath and os.path.exists (self.filepath):
+      wrapped (
+        self._shell_link.QueryInterface,
+        pythoncom.IID_IPersistFile
+      ).Load (
+        self.filepath
+      )
+    for k, v in kwargs.items ():
+      setattr (self, k, v)
+
+  def as_string (self):
+    return "%s -> %s" % (self.filepath or "-unsaved-", self.path or "-no-target-")
+
+  def dumped (self, level=0):
+    output = []
+    output.append (self.as_string ())
+    output.append ("")
+    for attribute, value in sorted (vars (self.__class__).items ()):
+      if not attribute.startswith ("_") and isinstance (value, property):
+        output.append ("%s: %s" % (attribute, getattr (self, attribute)))
+    return dumped ("\n".join (output), level)
+
+  def dump (self, level=0):
+    sys.stdout.write (self.dumped (level=level))
+
+  @classmethod
+  def from_lnk (cls, lnk_filepath):
+    return cls (lnk_filepath)
+
+  @classmethod
+  def from_target (cls, target_filepath, lnk_filepath=UNSET, **kwargs):
+    target_filepath = os.path.abspath (target_filepath)
+    if lnk_filepath is UNSET:
+      lnk_filepath = os.path.join (os.getcwd (), os.path.basename (target_filepath) + ".lnk")
+    return cls (
+      lnk_filepath,
+      path=target_filepath,
+      **kwargs
+    )
+
+  def __enter__ (self):
+    return self
+
+  def __exit__ (self, exc_type, exc_val, exc_tb):
+    if exc_type is None:
+      self.write ()
+
+  def _get_arguments (self):
+    return self._shell_link.GetArguments ()
+  def _set_arguments (self, arguments):
+    self._shell_link.SetArguments (arguments)
+  arguments = property (_get_arguments, _set_arguments)
+
+  def _get_description (self):
+    return self._shell_link.GetDescription ()
+  def _set_description (self, description):
+    self._shell_link.SetDescription (description)
+  description = property (_get_description, _set_description)
+
+  def _get_hotkey (self):
+    return self._shell_link.GetHotkey ()
+  def _set_hotkey (self, hotkey):
+    self._shell_link.SetHotkey (hotkey)
+  hotkey = property (_get_hotkey, _set_hotkey)
+
+  def _get_icon_location (self):
+    path, index = self._shell_link.GetIconLocation ()
+    return path, index
+  def _set_icon_location (self, icon_location):
+    self._shell_link.SetIconLocation (*icon_location)
+  icon_location = property (_get_icon_location, _set_icon_location)
+
+  def _get_path (self):
+    filepath, data = self._shell_link.GetPath (shell.SLGP_UNCPRIORITY)
+    return filepath
+  def _set_path (self, path):
+    self._shell_link.SetPath (path)
+  path = property (_get_path, _set_path)
+
+  def _get_show_cmd (self):
+    return self._shell_link.GetShowCmd ()
+  def _set_show_cmd (self, show_cmd):
+    self._shell_link.SetShowCmd (show_cmd)
+  show_cmd = property (_get_show_cmd, _set_show_cmd)
+
+  def _get_working_directory (self):
+    return self._shell_link.GetWorkingDirectory ()
+  def _set_working_directory (self, working_directory):
+    self._shell_link.SetWorkingDirectory (working_directory)
+  working_directory = property (_get_working_directory, _set_working_directory)
+
+  def write (self, filepath=None):
+    if not filepath:
+      filepath = self.filepath
+    if filepath is None:
+      raise x_shell (errmsg="Must specify a filepath for an unsaved shortcut")
+
+    ipersistfile = wrapped (
+      self._shell_link.QueryInterface,
+      pythoncom.IID_IPersistFile
+    ).Save (
+      filepath,
+      filepath == self.filepath
+    )
+
+    self.filepath = filepath
+    return self
+
+def shortcut (source=UNSET):
+  if source is None:
+    return None
+  elif source is UNSET:
+    return Shortcut ()
+  elif isinstance (source, Shortcut):
+    return source
+  elif source.endswith (".lnk"):
+    return Shortcut.from_lnk (source)
+  else:
+    return Shortcut.from_target (source)
+
+def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("", 0), Description = ""):
   """Create a Windows shortcut:
 
   Path - As what file should the shortcut be created?
@@ -292,21 +449,12 @@ def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("",0), D
     Description="Python Interpreter"
   )
   """
-  sh = pythoncom.CoCreateInstance (
-    shell.CLSID_ShellLink,
-    None,
-    pythoncom.CLSCTX_INPROC_SERVER,
-    shell.IID_IShellLink
-  )
-
-  sh.SetPath (Target)
-  sh.SetDescription (Description)
-  sh.SetArguments (Arguments)
-  sh.SetWorkingDirectory (StartIn)
-  sh.SetIconLocation (Icon[0], Icon[1])
-
-  persist = sh.QueryInterface (pythoncom.IID_IPersistFile)
-  persist.Save (Path, 1)
+  lnk = shortcut (Target)
+  lnk.arguments = Arguments
+  lnk.working_directory = StartIn
+  lnk.icon_location = Icon
+  lnk.description = Description
+  lnk.write (Path)
 
 #
 # Constants for structured storage
@@ -399,6 +547,8 @@ def structured_storage (filename):
   if n_characters: result['n_characters'] = n_characters
   if application: result['application'] = application
   return result
+
+
 
 if __name__ == '__main__':
   try:
