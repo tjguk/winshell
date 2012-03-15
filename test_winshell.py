@@ -1,14 +1,28 @@
+from __future__ import with_statement
 import os, sys
 import filecmp
 import shutil
 import tempfile
+import time
 import unittest
 
+import pythoncom
 from win32com.shell import shell, shellcon
 
 import winshell
 
-class TestSpecialFolders (unittest.TestCase):
+class WinshellTestCase (unittest.TestCase):
+
+  def assertEqualCI (self, s1, s2, *args, **kwargs):
+    self.assertEqual (s1.lower (), s2.lower (), *args, **kwargs)
+
+  def assertIs (self, item1, item2, *args, **kwargs):
+    self.assertTrue (item1 is item2, *args, **kwargs)
+
+  def assertIsInstance (self, item, klass, *args, **kwargs):
+    self.assertTrue (isinstance (item, klass), *args, **kwargs)
+
+class TestSpecialFolders (WinshellTestCase):
   #
   # It's genuinely difficult to test the special-folders functionality
   # without simply reproducing the code in the module (which is largely
@@ -63,7 +77,7 @@ class TestSpecialFolders (unittest.TestCase):
   def test_sendto (self):
     self.assert_folder_exists ("sendto", winshell.sendto ())
 
-class TestFolderSupport (unittest.TestCase):
+class TestFolderSupport (WinshellTestCase):
 
   def test_get_path (self):
     self.assertEqual (winshell.get_path (shellcon.CSIDL_APPDATA), os.environ['APPDATA'])
@@ -99,7 +113,7 @@ class TestFolderSupport (unittest.TestCase):
       winshell.folder ("XXX")
     self.assertRaises (winshell.x_winshell, _get_nonexistent_folder)
 
-class TestFileOperations (unittest.TestCase):
+class TestFileOperations (WinshellTestCase):
   #
   # It's also not easy to detect the more user-interfacey aspects of the
   # shell behaviour: whether the "flying folders" animation is operating,
@@ -268,13 +282,27 @@ class TestFileOperations (unittest.TestCase):
     winshell.delete_file (from_filepath, no_confirm=True)
     self.assertFalse (os.path.exists (from_filepath))
 
-class TestShortcuts (unittest.TestCase):
+class TestShortcuts (WinshellTestCase):
 
   #
   # Fixtures
   #
   def setUp (self):
     self.temppath = tempfile.mkdtemp ()
+    self.targetpath = sys.executable
+    self.lnkpath = os.path.join (self.temppath, "python.lnk")
+    self.description = time.asctime ()
+
+    sh = pythoncom.CoCreateInstance (
+      shell.CLSID_ShellLink,
+      None,
+      pythoncom.CLSCTX_INPROC_SERVER,
+      shell.IID_IShellLink
+    )
+    sh.SetPath (self.targetpath)
+    sh.SetDescription (self.description)
+    persist = sh.QueryInterface (pythoncom.IID_IPersistFile)
+    persist.Save (self.lnkpath, 1)
 
   def tearDown (self):
     shutil.rmtree (self.temppath)
@@ -283,12 +311,13 @@ class TestShortcuts (unittest.TestCase):
   # Support functions
   #
 
-
   #
   # Tests
   #
   def test_create_shortcut (self):
     shortcut_filepath = os.path.join (self.temppath, "python.lnk")
+    if os.path.exists (shortcut_filepath):
+      os.unlink (shortcut_filepath)
     self.assertFalse (os.path.exists (shortcut_filepath))
     winshell.CreateShortcut (
       Path=shortcut_filepath,
@@ -296,6 +325,31 @@ class TestShortcuts (unittest.TestCase):
       Description = "Shortcut to Python"
     )
     self.assertTrue (os.path.exists (shortcut_filepath))
+
+  #
+  # Test factory function
+  #
+  def test_factory_none (self):
+    self.assertIs (winshell.shortcut (None), None)
+
+  def test_factory_no_param (self):
+    shortcut = winshell.shortcut ()
+    self.assertIsInstance (shortcut, winshell.Shortcut)
+    self.assertFalse (shortcut)
+
+  def test_factory_shortcut (self):
+    shortcut = winshell.Shortcut ()
+    self.assertIs (shortcut, winshell.shortcut (shortcut))
+
+  def test_factory_from_link (self):
+    shortcut = winshell.shortcut (self.lnkpath)
+    self.assertTrue (shortcut)
+    self.assertEqualCI (shortcut.path, self.targetpath)
+
+  def test_factory_from_target (self):
+    shortcut = winshell.shortcut (self.targetpath)
+    self.assertFalse (shortcut)
+    self.assertEqualCI (shortcut.path, self.targetpath)
 
 if __name__ == '__main__':
   unittest.main ()
