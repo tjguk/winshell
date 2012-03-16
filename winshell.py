@@ -311,7 +311,6 @@ class Shortcut (object):
       shell.IID_IShellLink
     )
     self.filepath = filepath
-    self.loaded = False
     if self.filepath and os.path.exists (self.filepath):
       wrapped (
         self._shell_link.QueryInterface,
@@ -319,7 +318,6 @@ class Shortcut (object):
       ).Load (
         self.filepath
       )
-      self.loaded = True
     for k, v in kwargs.items ():
       setattr (self, k, v)
 
@@ -330,12 +328,13 @@ class Shortcut (object):
     output = []
     output.append (self.as_string ())
     output.append ("")
-    for attribute in ["arguments", "description", "hotkey", "icon_location", "path", "show_cmd", "working_directory"]:
-      output.append ("%s: %s" % (attribute, getattr (self, attribute)))
+    for attribute, value in sorted (vars (self.__class__).items ()):
+      if not attribute.startswith ("_") and isinstance (value, property):
+        output.append ("%s: %s" % (attribute, getattr (self, attribute)))
     return dumped ("\n".join (output), level)
 
   def dump (self, level=0):
-    print (self.dumped (level=level))
+    sys.stdout.write (self.dumped (level=level))
 
   @classmethod
   def from_lnk (cls, lnk_filepath):
@@ -351,10 +350,6 @@ class Shortcut (object):
       path=target_filepath,
       **kwargs
     )
-
-  def __bool__ (self):
-    return self.loaded
-  __nonzero__ = __bool__
 
   def __enter__ (self):
     return self
@@ -413,7 +408,6 @@ class Shortcut (object):
     if filepath is None:
       raise x_shell (errmsg="Must specify a filepath for an unsaved shortcut")
 
-    print ("About to save to %s" % filepath)
     ipersistfile = wrapped (
       self._shell_link.QueryInterface,
       pythoncom.IID_IPersistFile
@@ -456,12 +450,11 @@ def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("", 0), 
   )
   """
   lnk = shortcut (Target)
-  lnk.path = Path
-  #~ lnk.arguments = Arguments
-  #~ lnk.working_directory = StartIn
-  #~ lnk.icon_location = Icon
-  #~ lnk.description = Description
-  lnk.write ()
+  lnk.arguments = Arguments
+  lnk.working_directory = StartIn
+  lnk.icon_location = Icon
+  lnk.description = Description
+  lnk.write (Path)
 
 #
 # Constants for structured storage
