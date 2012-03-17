@@ -1,3 +1,4 @@
+# -*- coding: UTF8 -*-
 from distutils.core import setup
 import __version__
 
