@@ -1,3 +1,4 @@
+# -*- coding: UTF8 -*-
 """winshell - convenience functions to access Windows shell functionality
 
 Certain aspects of the Windows user interface are grouped by

@@ -1,3 +1,4 @@
+# -*- coding: UTF8 -*-
 from distutils.core import setup
 import __version__
 
@@ -13,17 +14,18 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 
-long_description = """winshell
-========
+#
+# setup wants a long description which we'd like to read
+# from README.rst; setup also wants a file called README
+# github, however, wants a file called readme.rst. This
+# is the compromise:
+#
+try:
+  long_description = open ("README.rst").read ()
+  open ("README", "w").write (long_description)
+except (OSError, IOError):
+   long_description = ""
 
-The winshell module is a light wrapper around the Windows shell functionality.
-
-It includes convenience functions for accessing special folders, for using
-the shell's file copy, rename & delete functionality, and a certain amount
-of support for structured storage.
-
-Docs are hosted at: http://winshell.readthedocs.org/
-"""
 setup (
   name = "winshell",
   version = __version__.__VERSION__,
