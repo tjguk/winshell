@@ -62,7 +62,7 @@ def indented (text, level, indent=2):
 
 def dumped (text, level, indent=2):
   """Put curly brackets round an indented text"""
-  return indented ("{\n%s\n}" % indented (text, level+1, indent) or "None", level, indent)
+  return indented ("{\n%s\n}" % indented (text, level+1, indent) or "None", level, indent) + "\n"
 
 def dumped_list (l, level, indent=2):
   return dumped ("\n".join (unicode (i)  for i in l), level, indent)
