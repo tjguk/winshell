@@ -26,6 +26,7 @@ http://www.opensource.org/licenses/mit-license.php
 from __version__ import __VERSION__
 
 import os, sys
+import win32con
 from win32com import storagecon
 from win32com.shell import shell, shellcon
 import win32api
@@ -303,6 +304,12 @@ def delete_file (
 
 class Shortcut (object):
 
+  show_states = {
+    "normal" : win32con.SW_SHOWNORMAL,
+    "max" : win32con.SW_SHOWMAXIMIZED,
+    "min" : win32con.SW_SHOWMINIMIZED
+  }
+
   def __init__ (self, filepath=None, **kwargs):
     self._shell_link = wrapped (
       pythoncom.CoCreateInstance,
@@ -392,8 +399,17 @@ class Shortcut (object):
   path = property (_get_path, _set_path)
 
   def _get_show_cmd (self):
-    return self._shell_link.GetShowCmd ()
+    show_cmd = self._shell_link.GetShowCmd ()
+    for k, v in self.show_states.items ():
+      if v == show_cmd:
+        return k
+    else:
+      return None
   def _set_show_cmd (self, show_cmd):
+    try:
+      show_cmd = int (show_cmd)
+    except ValueError:
+      show_cmd = self.show_states[show_cmd]
     self._shell_link.SetShowCmd (show_cmd)
   show_cmd = property (_get_show_cmd, _set_show_cmd)
 

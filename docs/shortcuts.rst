@@ -65,9 +65,35 @@ read or written:
 
 ..  attribute:: show_cmd
 
-    One of: "normal" (the default), "minimized" and "maximized"
+    One of: "normal" (the default), "min" and "max"
 
-..
+..  attribute:: working_directory
+
+    The directory which should be made active before the shortcut's
+    target is executed.
+
+The :class:`Shortcut` class acts as its own context manager, allowing an existing shortcut
+to be modified in-place, or a new one created::
+
+    import os, sys
+    import winshell
+
+    with winshell.shortcut (os.path.join (winshell.desktop (), "python.lnk")) as link:
+      link.path = sys.executable
+      link.description = "Shortcut to python"
+      link.arguments = "-m winshell"
+
+The :class:`Shortcut` class has the following methods:
+
+..  method:: dump (level=0)
+
+    Write to sys.stdout a summary of the shortcut's attributes offset by (level * 2) spaces
+
+..  method:: dumped (level=0)
+
+    Return a string representing a summary of the shortcut's attributes offset by (level * 2) spaces
+
+
 
 For backwards compatibility, the following function is exposed.
 
