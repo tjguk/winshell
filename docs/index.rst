@@ -11,3 +11,4 @@ Contents:
    file-operations
    shortcuts
    structured-storage
+   cookbook

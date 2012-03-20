@@ -35,67 +35,71 @@ corresponding attributes will be populated inside the shortcut object.
 ..  py:class:: Shortcut
 
     An object which represents a shell link on the filesystem. The shell link
-    may or may not already exist.
+    may or may not already exist. The object acts as its own context manager,
+    allowing an existing shortcut to be modified in-place, or a new one created::
 
-A :class:`Shortcut` object has the following attributes, each of which may be
-read or written:
+        import os, sys
+        import winshell
 
-..  attribute:: Shortcut.arguments
-
-    The arguments, if any, to the executable which this shortcut represents, if any
-
-..  attribute:: Shortcut.description
-
-    A long description for this shortcut, not immediately visible to the user
-     can be used for storing arbitrary data).
-
-..  attribute:: hotkey
-
-    The hotkey for this shortcuts
-    ..  TODO
-
-..  attribute:: icon_location
-
-    A two-tuple representing the file containing the icon and the position of the icon
-    within that file's icon resources.
-
-..  attribute:: path
-
-    The target of the shortcut
-
-..  attribute:: show_cmd
-
-    One of: "normal" (the default), "min" and "max"
-
-..  attribute:: working_directory
-
-    The directory which should be made active before the shortcut's
-    target is executed.
-
-The :class:`Shortcut` class acts as its own context manager, allowing an existing shortcut
-to be modified in-place, or a new one created::
-
-    import os, sys
-    import winshell
-
-    with winshell.shortcut (os.path.join (winshell.desktop (), "python.lnk")) as link:
-      link.path = sys.executable
-      link.description = "Shortcut to python"
-      link.arguments = "-m winshell"
-
-The :class:`Shortcut` class has the following methods:
-
-..  method:: dump (level=0)
-
-    Write to sys.stdout a summary of the shortcut's attributes offset by (level * 2) spaces
-
-..  method:: dumped (level=0)
-
-    Return a string representing a summary of the shortcut's attributes offset by (level * 2) spaces
+        link_filepath = os.path.join (winshell.desktop (), "python.lnk")
+        with winshell.shortcut (link_filepath) as link:
+          link.path = sys.executable
+          link.description = "Shortcut to python"
+          link.arguments = "-m winshell"
 
 
+    The object has the following attributes:
 
-For backwards compatibility, the following function is exposed.
+    ..  attribute:: Shortcut.arguments
+
+        The arguments, if any, to the executable which this shortcut represents, if any
+
+    ..  attribute:: Shortcut.description
+
+        A long description for this shortcut, not immediately visible to the user
+         can be used for storing arbitrary data).
+
+    ..  attribute:: Shortcut.hotkey
+
+        The hotkey for this shortcuts
+        ..  TODO
+
+    ..  attribute:: Shortcut.icon_location
+
+        A two-tuple representing the file containing the icon and the position of the icon
+        within that file's icon resources.
+
+    ..  attribute:: Shortcut.path
+
+        The target of the shortcut
+
+    ..  attribute:: Shortcut.show_cmd
+
+        One of: "normal" (the default), "min" and "max"
+
+    ..  attribute:: Shortcut.working_directory
+
+        The directory which should be made active before the shortcut's
+        target is executed.
+
+    The object has the following methods:
+
+    ..  method:: dump (level=0)
+
+        Write to sys.stdout a summary of the shortcut's attributes offset by (level * 2) spaces
+
+    ..  method:: dumped (level=0)
+
+        Return a string representing a summary of the shortcut's attributes offset by (level * 2) spaces
+
+    ..  method:: write (filepath=None)
+
+        Create or update the underlying shell link to disk. If `filepath` is given, the
+        link is created there; otherwise, the shortcut's original location is used. If
+        the object was not created from a shortcut and has no location, an :exc:`x_shell`
+        exception is raised.
+
+For backwards compatibility, the following function is exposed:
 
 ..  py:function:: CreateShortcut (Path, Target, Arguments="", StartIn="", Icon=("",0), Description="")
 
@@ -117,6 +121,9 @@ For backwards compatibility, the following function is exposed.
         Description="Python Interpreter"
       )
 
+but new code should use the :func:`shortcut` factory function and a with-block
+to update or create a shortcut.
+
 References
 ----------
 
@@ -129,4 +136,3 @@ To Do
 -----
 
 * More general-purpose implementation
-* Allow reading & writing of shortcuts, possibly via a class mechanism
