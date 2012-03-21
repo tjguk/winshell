@@ -1,4 +1,9 @@
 * Bump version in __version__.py
 * Empty & rebuild docs
-
-* python setup.py sdist
+* git checkout stable
+* git merge master
+* git tag 0.5
+* python setup.py sdist upload
+* git checkout master
+* git push --all
+* git push --tags
