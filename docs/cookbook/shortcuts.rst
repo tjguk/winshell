@@ -61,10 +61,6 @@ folder.
 
 ..  literalinclude:: shortcuts/create_multiple_shortcuts.py
 
-Discussion
-~~~~~~~~~~
-The same :class:`Shortcut` object may be written to multiple
-locations.
 
 
 Walk the programs tree and list the shortcut targets
@@ -75,3 +71,11 @@ the shortcut name and its target along with any parameters.
 
 ..  literalinclude:: shortcuts/walk_program_tree.py
 
+Discussion
+~~~~~~~~~~
+The Start Menu merges shortcuts from two folders: the user Programs
+folder and the common Programs folder. We first scan the user Programs
+folder, building up a dictionary mapping relative path name to a
+list of shortcut objects representing the icons within. We then carry
+out the equivalent action for the common Programs file, merging the
+results into the same dictionary.

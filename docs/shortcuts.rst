@@ -48,7 +48,19 @@ corresponding attributes will be populated inside the shortcut object.
           link.arguments = "-m winshell"
 
 
-    The object has the following attributes:
+    The object has the following attributes. For the shortcut to make
+    any sense, you must set :attr:`Shortcut.path`. In addition,
+    :attr:`Shortcut.lnk_filepath` must either be set explicitly by
+    assigning it a filepath or implicitly as the source of the
+    :class:`Shortcut` object or via the :meth:`Shortcut.write` method.
+
+    ..  attribute:: Shortcut.lnk_filepath
+
+        The location of the shortcut (the .lnk file) on the filesystem
+
+    ..  attribute:: Shortcut.path
+
+        The target of the shortcut
 
     ..  attribute:: Shortcut.arguments
 
@@ -68,10 +80,6 @@ corresponding attributes will be populated inside the shortcut object.
 
         A two-tuple representing the file containing the icon and the position of the icon
         within that file's icon resources.
-
-    ..  attribute:: Shortcut.path
-
-        The target of the shortcut
 
     ..  attribute:: Shortcut.show_cmd
 

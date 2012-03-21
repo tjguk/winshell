@@ -310,7 +310,7 @@ class Shortcut (object):
     "min" : win32con.SW_SHOWMINIMIZED
   }
 
-  def __init__ (self, filepath=None, **kwargs):
+  def __init__ (self, lnk_filepath=None, **kwargs):
     self._shell_link = wrapped (
       pythoncom.CoCreateInstance,
       shell.CLSID_ShellLink,
@@ -318,19 +318,19 @@ class Shortcut (object):
       pythoncom.CLSCTX_INPROC_SERVER,
       shell.IID_IShellLink
     )
-    self.filepath = filepath
-    if self.filepath and os.path.exists (self.filepath):
+    self.lnk_filepath = lnk_filepath
+    if self.lnk_filepath and os.path.exists (self.lnk_filepath):
       wrapped (
         self._shell_link.QueryInterface,
         pythoncom.IID_IPersistFile
       ).Load (
-        self.filepath
+        self.lnk_filepath
       )
     for k, v in kwargs.items ():
       setattr (self, k, v)
 
   def as_string (self):
-    return "%s -> %s" % (self.filepath or "-unsaved-", self.path or "-no-target-")
+    return "%s -> %s" % (self.lnk_filepath or "-unsaved-", self.path or "-no-target-")
 
   def dumped (self, level=0):
     output = []
@@ -392,8 +392,8 @@ class Shortcut (object):
   icon_location = property (_get_icon_location, _set_icon_location)
 
   def _get_path (self):
-    filepath, data = self._shell_link.GetPath (shell.SLGP_UNCPRIORITY)
-    return filepath
+    lnk_filepath, data = self._shell_link.GetPath (shell.SLGP_UNCPRIORITY)
+    return lnk_filepath
   def _set_path (self, path):
     self._shell_link.SetPath (path)
   path = property (_get_path, _set_path)
@@ -419,21 +419,21 @@ class Shortcut (object):
     self._shell_link.SetWorkingDirectory (working_directory)
   working_directory = property (_get_working_directory, _set_working_directory)
 
-  def write (self, filepath=None):
-    if not filepath:
-      filepath = self.filepath
-    if filepath is None:
-      raise x_shell (errmsg="Must specify a filepath for an unsaved shortcut")
+  def write (self, lnk_filepath=None):
+    if not lnk_filepath:
+      lnk_filepath = self.lnk_filepath
+    if lnk_filepath is None:
+      raise x_shell (errmsg="Must specify a lnk_filepath for an unsaved shortcut")
 
     ipersistfile = wrapped (
       self._shell_link.QueryInterface,
       pythoncom.IID_IPersistFile
     ).Save (
-      filepath,
-      filepath == self.filepath
+      lnk_filepath,
+      lnk_filepath == self.lnk_filepath
     )
 
-    self.filepath = filepath
+    self.lnk_filepath = lnk_filepath
     return self
 
 def shortcut (source=UNSET):
