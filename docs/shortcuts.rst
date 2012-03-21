@@ -122,7 +122,7 @@ For backwards compatibility, the following function is exposed:
 
     eg::
 
-      CreateShortcut (
+      winshell.CreateShortcut (
         Path=os.path.join (desktop (), "PythonI.lnk"),
         Target=r"c:\python\python.exe",
         Icon=(r"c:\python\python.exe", 0),
@@ -130,17 +130,21 @@ For backwards compatibility, the following function is exposed:
       )
 
 but new code should use the :func:`shortcut` factory function and a with-block
-to update or create a shortcut.
+to update or create a shortcut::
+
+  desktop = winshell.desktop ()
+  with winshell.shortcut (os.path.join (desktop, "PythonI.lnk")) as shortcut:
+    shortcut.path = sys.executable
+    shortcut.icon = sys.executable, 0
+    shortcut.description = "Python Interpreter"
 
 References
 ----------
 
 ..  seealso::
 
+    :doc:`cookbook/shortcuts`
+      Cookbook examples of using shortcuts
+
     `Shell Links Overview <http://msdn.microsoft.com/en-us/library/windows/desktop/bb776891%28v=vs.85%29.aspx>`_
       Shell Links on MSDN
-
-To Do
------
-
-* More general-purpose implementation

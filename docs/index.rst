@@ -35,9 +35,10 @@ Where do I get it?
 Copyright & License?
 --------------------
 
-(c) Copyright Tim Golden <mail@timgolden.me.uk> 2012
-Licensed under the (GPL-compatible) MIT License:
-http://www.opensource.org/licenses/mit-license.php
+* Copyright Tim Golden <mail@timgolden.me.uk> 2012
+
+* Licensed under the (GPL-compatible) MIT License:
+  http://www.opensource.org/licenses/mit-license.php
 
 
 Prerequisites & Compatibility
