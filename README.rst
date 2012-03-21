@@ -7,4 +7,7 @@ It includes convenience functions for accessing special folders, for using
 the shell's file copy, rename & delete functionality, and a certain amount
 of support for structured storage.
 
+winshell is tested on all versions of Python from 2.4 to 3.2 (2.5+ for context
+management).
+
 Docs are hosted at: http://winshell.readthedocs.org/
