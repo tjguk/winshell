@@ -24,6 +24,10 @@ the underlying win32com.shell functions, I haven't attempted to expose
 every last option. It's entirely likely that future incarnations of this
 module will be more ambitious.
 
+There's also a growing list of cookbook examples:
+
+* :doc:`cookbook`
+
 
 Where do I get it?
 ------------------

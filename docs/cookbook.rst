@@ -1,10 +1,10 @@
 .. _cookbook:
 
-Cookbook
+Examples
 ========
 
 ..  toctree::
     :maxdepth: 2
     :glob:
-    
+
     cookbook/*
