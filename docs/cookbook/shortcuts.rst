@@ -27,7 +27,7 @@ returns the values of each of the settable attributes in a dict-like
 layout.
 
 
-.. _create-a-shortcut-to-a-file
+.. _create-a-shortcut-to-a-file:
 
 Create a shortcut to a file
 ---------------------------
@@ -51,7 +51,7 @@ The :meth:`Shortcut.write` method creates a shortcut at the
 location given.
 
 
-..  _create-a-shortcut-in-multiple-locations
+..  _create-a-shortcut-in-multiple-locations:
 
 Create a shortcut in multiple locations
 ---------------------------------------
@@ -62,6 +62,7 @@ folder.
 ..  literalinclude:: shortcuts/create_multiple_shortcuts.py
 
 
+..  _walk-the-programs-tree-and-list-shortcut-targets:
 
 Walk the programs tree and list the shortcut targets
 ----------------------------------------------------
@@ -79,3 +80,6 @@ folder, building up a dictionary mapping relative path name to a
 list of shortcut objects representing the icons within. We then carry
 out the equivalent action for the common Programs file, merging the
 results into the same dictionary.
+
+The result is a simple ASCII tree of folders, links and subfolders, including
+links from user and common installs.

@@ -27,5 +27,5 @@ for relpath, lnks in sorted (shortcuts.items ()):
     print ("")
   print ("%s+ %s" % ("  " * level, relpath))
   for lnk in lnks:
-    name, _ = os.path.splitext (os.path.basename (lnk.filepath))
+    name, _ = os.path.splitext (os.path.basename (lnk.lnk_filepath))
     print ("%s* %s -> %s" % ("  " * (level + 1), name, lnk.path))
