@@ -1,0 +1,4 @@
+* Bump version in __version__.py
+* Empty & rebuild docs
+
+* python setup.py sdist

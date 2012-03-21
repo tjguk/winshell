@@ -22,6 +22,12 @@ https://github.com/tjguk/winshell
 What's Changed?
 ===============
 
+21th mar 2012 0.5
+
+Added shortcut class support
+More work on tests, ensuring compatibility from 2.4 -> 3.2
+Cookbook examples for shortcuts
+
 13th Mar 2012 0.4.1
 
 Tidied up; added docs & tests
