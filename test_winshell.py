@@ -1,5 +1,4 @@
 # -*- coding: UTF8 -*-
-from __future__ import with_statement
 import os, sys
 import filecmp
 import shutil
@@ -11,30 +10,17 @@ try:
   from StringIO import StringIO
 except ImportError:
   from io import StringIO
-try:
-  exec ("with")
-except SyntaxError:
-  has_with = True
-else:
-  has_with = False
 
 import pythoncom
 from win32com.shell import shell, shellcon
 
 import winshell
 
-class WinshellTestCase (unittest.TestCase):
+import test_base
+if sys.version_info >= (2, 5):
+  from test_winshell_25plus import *
 
-  def assertEqualCI (self, s1, s2, *args, **kwargs):
-    self.assertEqual (s1.lower (), s2.lower (), *args, **kwargs)
-
-  def assertIs (self, item1, item2, *args, **kwargs):
-    self.assertTrue (item1 is item2, *args, **kwargs)
-
-  def assertIsInstance (self, item, klass, *args, **kwargs):
-    self.assertTrue (isinstance (item, klass), *args, **kwargs)
-
-class TestSpecialFolders (WinshellTestCase):
+class TestSpecialFolders (test_base.TestCase):
   #
   # It's genuinely difficult to test the special-folders functionality
   # without simply reproducing the code in the module (which is largely
@@ -89,7 +75,7 @@ class TestSpecialFolders (WinshellTestCase):
   def test_sendto (self):
     self.assert_folder_exists ("sendto", winshell.sendto ())
 
-class TestFolderSupport (WinshellTestCase):
+class TestFolderSupport (test_base.TestCase):
 
   def test_get_path (self):
     self.assertEqual (winshell.get_path (shellcon.CSIDL_APPDATA), os.environ['APPDATA'])
@@ -125,7 +111,7 @@ class TestFolderSupport (WinshellTestCase):
       winshell.folder ("XXX")
     self.assertRaises (winshell.x_winshell, _get_nonexistent_folder)
 
-class TestFileOperations (WinshellTestCase):
+class TestFileOperations (test_base.TestCase):
   #
   # It's also not easy to detect the more user-interfacey aspects of the
   # shell behaviour: whether the "flying folders" animation is operating,
@@ -294,7 +280,7 @@ class TestFileOperations (WinshellTestCase):
     winshell.delete_file (from_filepath, no_confirm=True)
     self.assertFalse (os.path.exists (from_filepath))
 
-class TestShortcuts (WinshellTestCase):
+class TestShortcuts (test_base.TestCase):
 
   #
   # Fixtures
@@ -345,7 +331,7 @@ class TestShortcuts (WinshellTestCase):
   def test_factory_no_param (self):
     shortcut = winshell.shortcut ()
     self.assertIsInstance (shortcut, winshell.Shortcut)
-    self.assertTrue (shortcut.filepath is None)
+    self.assertTrue (shortcut.lnk_filepath is None)
 
   def test_factory_shortcut (self):
     shortcut = winshell.Shortcut ()
@@ -353,13 +339,13 @@ class TestShortcuts (WinshellTestCase):
 
   def test_factory_from_link (self):
     shortcut = winshell.shortcut (self.lnkpath)
-    self.assertFalse (shortcut.filepath is None)
-    self.assertEqualCI (shortcut.filepath, self.lnkpath)
+    self.assertFalse (shortcut.lnk_filepath is None)
+    self.assertEqualCI (shortcut.lnk_filepath, self.lnkpath)
     self.assertEqualCI (shortcut.path, self.targetpath)
 
   def test_factory_from_target (self):
     shortcut = winshell.shortcut (self.targetpath)
-    self.assertFalse (shortcut.filepath is None)
+    self.assertFalse (shortcut.lnk_filepath is None)
     self.assertEqualCI (shortcut.path, self.targetpath)
 
   #
@@ -385,16 +371,6 @@ class TestShortcuts (WinshellTestCase):
       self.assertTrue (sys.stdout.read ().startswith ("{\n  -unsaved-"))
     finally:
       sys.stdout = _stdout
-
-  if has_with:
-    def test_context_manager (self):
-      guid = "32710ee1-6df9-11e1-8401-ec55f9f656d6-2"
-      shortcut_filepath = os.path.join (self.temppath, guid + ".lnk")
-      self.assertFalse (os.path.exists (shortcut_filepath))
-      with winshell.shortcut (shortcut_filepath) as s:
-        s.path = self.targetpath
-        s.description = guid
-      self.assertTrue (os.path.exists (shortcut_filepath))
 
 if __name__ == '__main__':
   unittest.main ()
