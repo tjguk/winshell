@@ -12,3 +12,4 @@ Contents:
    shortcuts
    structured-storage
    cookbook
+   changelog
