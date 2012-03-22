@@ -32,8 +32,9 @@ There's also a growing list of cookbook examples:
 Where do I get it?
 ------------------
 
-* Source: http://github.com/tjguk/winshell
-* Release: http://pypi.python.org/pypi/winshell
+* pip install winshell
+* github: http://github.com/tjguk/winshell
+* PyPI: http://pypi.python.org/pypi/winshell
 
 
 Copyright & License?
