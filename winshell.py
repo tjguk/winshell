@@ -565,7 +565,34 @@ def structured_storage (filename):
   if application: result['application'] = application
   return result
 
+class Recycler (object):
 
+  def __init__ (self):
+    self.shDesktop = shell.SHGetDesktopFolder ().QueryInterface (shell.IID_IShellFolder2)
+    self.pidlRecycler = shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
+    self.shRecycler = self.shDesktop.BindToObject (self.pidlRecycler, None, shell.IID_IShellFolder2)
+
+  def __str__ (self):
+    return self.shDesktop.GetDisplayNameOf (self.pidlRecycler, shellcon.SHGDN_NORMAL)
+
+  def __repr__ (self):
+    return "<%s: %s>" % (self.__class__.__name__, self)
+
+  def __getattr__ (self, attr):
+    return getattr (self.shRecycler, attr)
+
+  def details (self, item):
+    return self.shRecycler.GetDetailsOf (None, item)
+
+  def enumerate (self, flags=shellcon.SHCONTF_FOLDERS|shellcon.SHCONTF_NONFOLDERS):
+    enum = self.shRecycler.EnumObjects (0, flags)
+    while True:
+      pidls = enum.Next (1)
+      if pidls:
+        for pidl in pidls:
+          yield pidl
+      else:
+        break
 
 if __name__ == '__main__':
   try:
