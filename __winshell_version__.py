@@ -1,2 +1,3 @@
 # -*- coding: UTF8 -*-
-__VERSION__ = "0.5.4"
+__VERSION__ = "0.6"
+__RELEASE__ = "dev"

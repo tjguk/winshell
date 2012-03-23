@@ -43,6 +43,10 @@ try:
   unicode
 except NameError:
   unicode = str
+try:
+  from StringIO import StringIO
+except ImportError:
+  from io import StringIO
 
 class x_winshell (Exception):
   pass
@@ -565,6 +569,29 @@ def structured_storage (filename):
   if application: result['application'] = application
   return result
 
+class ShellEntry (object):
+
+  def __init__ (self, parent, pidl):
+    self.parent = parent
+    self.pidl = pidl
+
+class RecycledItem (ShellEntry):
+
+  def __str__ (self):
+    return self.real_filename ()
+
+  def __repr__ (self):
+    return "<%s: %s -> %s>" % (self.__class__.__name__, self.real_filename (), self.original_filename ())
+
+  def original_filename (self):
+    return self.parent.GetDisplayNameOf (self.pidl, shellcon.SHGDN_NORMAL)
+
+  def real_filename (self):
+    return self.parent.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
+
+  def restore (self):
+    move_file (self.real_filename (), self.original_filename ())
+
 class Recycler (object):
 
   def __init__ (self):
@@ -581,8 +608,25 @@ class Recycler (object):
   def __getattr__ (self, attr):
     return getattr (self.shRecycler, attr)
 
-  def details (self, item):
-    return self.shRecycler.GetDetailsOf (None, item)
+  def restore (self, pidl):
+    temp_filepath = tempfile.mktemp ()
+    f = open (temp_filepath, "wb")
+    try:
+      for data in self.contents (pidl):
+        f.write (data)
+    finally:
+      f.close ()
+
+    copy_file (temp_filepath, self.filename (pidl))
+
+  def contents (self, pidl, buffer_size=10000):
+    istream = self.shRecycler.BindToStorage (pidl, None, pythoncom.IID_IStream)
+    while True:
+      contents = istream.Read (buffer_size)
+      if contents:
+        yield contents
+      else:
+        break
 
   def enumerate (self, flags=shellcon.SHCONTF_FOLDERS|shellcon.SHCONTF_NONFOLDERS):
     enum = self.shRecycler.EnumObjects (0, flags)
@@ -590,9 +634,10 @@ class Recycler (object):
       pidls = enum.Next (1)
       if pidls:
         for pidl in pidls:
-          yield pidl
+          yield RecycledItem (self, pidl)
       else:
         break
+  __iter__ = enumerate
 
 if __name__ == '__main__':
   try:

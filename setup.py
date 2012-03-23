@@ -1,6 +1,6 @@
 # -*- coding: UTF8 -*-
 from distutils.core import setup
-import __winshell_version__
+import __winshell_version__ as __version__
 
 classifiers = [
   'Development Status :: 5 - Production/Stable',
@@ -28,7 +28,7 @@ except (OSError, IOError):
 
 setup (
   name = "winshell",
-  version = __winshell_version__.__VERSION__,
+  version = __version__.__VERSION__ + __version__.__RELEASE__,
   description = "Windows shell functions",
   author = "Tim Golden",
   author_email = "mail@timgolden.me.uk",
