@@ -44,9 +44,14 @@ try:
 except NameError:
   unicode = str
 try:
-  from StringIO import StringIO
+  from collections import namedtuple
+  StorageStat = namedtuple (
+    "StorageStat",
+    ["name", "type", "size", "mtime", "ctime", "atime", "mode", "locks_supported", "clsid", "state_bits", "reserved"]
+  )
+  make_storage_stat = StorageStat._make
 except ImportError:
-  from io import StringIO
+  make_storage_stat = tuple
 
 class x_winshell (Exception):
   pass
@@ -622,6 +627,22 @@ class ShellEntry (object):
   def name (self, type=shellcon.SHGDN_NORMAL):
     return self.parent.GetDisplayNameOf (self.pidl, type)
 
+  def stat (self):
+    stream = self.parent.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
+    return make_storage_stat (stream.Stat ())
+
+  def getsize (self):
+    return self.stat ()[2]
+
+  def getmtime (self):
+    return self.stat ()[3]
+
+  def getctime (self):
+    return self.stat ()[4]
+
+  def getatime (self):
+    return self.stat ()[5]
+
 class ShellFolder (ShellEntry):
 
   def __init__ (self, parent, pidl):
@@ -699,6 +720,17 @@ class Recycler (ShellFolder):
     return RecycledItem (self, pidl)
   folder_factory = item_factory
 
+  def restore_newest (self, original_filepath):
+    candidates = self.versions (original_filepath)
+    if not candidates:
+      raise RuntimeError ("%s not found in the Recycle Bin" % original_filepath)
+    newest = max (candidates, key=lambda entry: entry.getmtime ())
+    newest.restore ()
+
+  def versions (self, original_filepath):
+    original_filepath = original_filepath.lower ()
+    return [entry for entry in self if entry.original_filename ().lower () == original_filepath]
+
 def root ():
   return ShellFolder (shell.SHGetDesktopFolder (), [])
 
@@ -731,8 +763,3 @@ if __name__ == '__main__':
     print ('SendTo =>', sendto ())
   finally:
     raw_input ("Press enter...")
-
-
-import collections
-
-storage_stat = collections.namedtuple ("storage_stat", ["name", "type", "size", "mtime", "ctime", "atime", "mode", "locks_supported", "clsid", "state_bits", "reserved"])
