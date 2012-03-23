@@ -622,7 +622,6 @@ class ShellEntry (object):
   def name (self, type=shellcon.SHGDN_NORMAL):
     return self.parent.GetDisplayNameOf (self.pidl, type)
 
-
 class ShellFolder (ShellEntry):
 
   def __init__ (self, parent, pidl):
@@ -637,6 +636,9 @@ class ShellFolder (ShellEntry):
 
   def __getattr__ (self, attr):
     return getattr (self.folder, attr)
+
+  def __getitem__ (self, item):
+    return self.get_child (item)
 
   def enumerate (self, flags=shellcon.SHCONTF_FOLDERS|shellcon.SHCONTF_NONFOLDERS):
     enum = self.folder.EnumObjects (0, flags)
@@ -657,6 +659,13 @@ class ShellFolder (ShellEntry):
 
   def item_factory (self, pidl):
     return ShellEntry (self, pidl)
+
+  def get_child (self, name, hWnd=None):
+    n_eaten, pidl, attributes = self.folder.ParseDisplayName (hWnd, None, name, shellcon.SFGAO_FOLDER)
+    if attributes & shellcon.SFGAO_FOLDER:
+      return self.folder_factory (pidl)
+    else:
+      return self.item_factory (pidl)
 
 class RecycledItem (ShellEntry):
 
@@ -723,3 +732,7 @@ if __name__ == '__main__':
   finally:
     raw_input ("Press enter...")
 
+
+import collections
+
+storage_stat = collections.namedtuple ("storage_stat", ["name", "type", "size", "mtime", "ctime", "atime", "mode", "locks_supported", "clsid", "state_bits", "reserved"])
