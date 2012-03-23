@@ -34,6 +34,6 @@ setup (
   author_email = "mail@timgolden.me.uk",
   url = "https://github.com/tjguk/winshell",
   license = "http://www.opensource.org/licenses/mit-license.php",
-  py_modules = ["winshell"],
+  py_modules = ["winshell", "__version__"],
   long_description=long_description
 )
