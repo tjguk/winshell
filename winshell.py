@@ -575,6 +575,47 @@ class ShellEntry (object):
     self.parent = parent
     self.pidl = pidl
 
+  def __str__ (self):
+    return self.parent.GetDisplayNameOf (self.pidl, shellcon.SHGDN_NORMAL)
+
+  def __repr__ (self):
+    return "<%s: %s>" % (self.__class__.__name__, self)
+
+class ShellFolder (ShellEntry):
+
+  def __init__ (self, parent, pidl):
+    ShellEntry.__init__ (self, parent, pidl)
+    #
+    # If we're at the desktop, we are our own parent
+    #
+    if pidl == []:
+      self.folder = self.parent
+    else:
+      self.folder = self.parent.BindToObject (self.pidl, None, shell.IID_IShellFolder2)
+
+  def __getattr__ (self, attr):
+    return getattr (self.folder, attr)
+
+  def enumerate (self, flags=shellcon.SHCONTF_FOLDERS|shellcon.SHCONTF_NONFOLDERS):
+    enum = self.folder.EnumObjects (0, flags)
+    while True:
+      pidls = enum.Next (1)
+      if pidls:
+        for pidl in pidls:
+          if self.folder.GetAttributesOf ([pidl], shellcon.SFGAO_FOLDER):
+            yield self.folder_factory (pidl)
+          else:
+            yield self.item_factory (pidl)
+      else:
+        break
+  __iter__ = enumerate
+
+  def folder_factory (self, pidl):
+    return ShellFolder (self, pidl)
+
+  def item_factory (self, pidl):
+    return ShellEntry (self, pidl)
+
 class RecycledItem (ShellEntry):
 
   def __str__ (self):
@@ -592,35 +633,8 @@ class RecycledItem (ShellEntry):
   def restore (self):
     move_file (self.real_filename (), self.original_filename ())
 
-class Recycler (object):
-
-  def __init__ (self):
-    self.shDesktop = shell.SHGetDesktopFolder ().QueryInterface (shell.IID_IShellFolder2)
-    self.pidlRecycler = shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
-    self.shRecycler = self.shDesktop.BindToObject (self.pidlRecycler, None, shell.IID_IShellFolder2)
-
-  def __str__ (self):
-    return self.shDesktop.GetDisplayNameOf (self.pidlRecycler, shellcon.SHGDN_NORMAL)
-
-  def __repr__ (self):
-    return "<%s: %s>" % (self.__class__.__name__, self)
-
-  def __getattr__ (self, attr):
-    return getattr (self.shRecycler, attr)
-
-  def restore (self, pidl):
-    temp_filepath = tempfile.mktemp ()
-    f = open (temp_filepath, "wb")
-    try:
-      for data in self.contents (pidl):
-        f.write (data)
-    finally:
-      f.close ()
-
-    copy_file (temp_filepath, self.filename (pidl))
-
-  def contents (self, pidl, buffer_size=10000):
-    istream = self.shRecycler.BindToStorage (pidl, None, pythoncom.IID_IStream)
+  def contents (self, buffer_size):
+    istream = self.parent.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
     while True:
       contents = istream.Read (buffer_size)
       if contents:
@@ -628,16 +642,19 @@ class Recycler (object):
       else:
         break
 
-  def enumerate (self, flags=shellcon.SHCONTF_FOLDERS|shellcon.SHCONTF_NONFOLDERS):
-    enum = self.shRecycler.EnumObjects (0, flags)
-    while True:
-      pidls = enum.Next (1)
-      if pidls:
-        for pidl in pidls:
-          yield RecycledItem (self, pidl)
-      else:
-        break
-  __iter__ = enumerate
+class Recycler (ShellFolder):
+
+  def factory (self, pidl):
+    return RecycledItem (self, pidl)
+
+def root ():
+  return ShellFolder (shell.SHGetDesktopFolder (), [])
+
+def recycler ():
+  return Recycler (
+    shell.SHGetDesktopFolder ().QueryInterface (shell.IID_IShellFolder2),
+    shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
+  )
 
 if __name__ == '__main__':
   try:
