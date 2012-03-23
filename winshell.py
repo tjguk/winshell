@@ -576,10 +576,52 @@ class ShellEntry (object):
     self.pidl = pidl
 
   def __str__ (self):
-    return self.parent.GetDisplayNameOf (self.pidl, shellcon.SHGDN_NORMAL)
+    return self.as_string ()
 
   def __repr__ (self):
     return "<%s: %s>" % (self.__class__.__name__, self)
+
+  def as_string (self):
+    return self.name ()
+
+  def dumped (self, level=0):
+    output = []
+    output.append (self.as_string ())
+    output.append ("")
+    output.append (dumped_list (self.attributes (), level))
+    return dumped ("\n".join (output), level)
+
+  def dump (self, level=0):
+    sys.stdout.write (self.dumped (level=level))
+
+  def attributes (self):
+    prefix = "SFGAO_"
+    results = set ()
+    all_attributes = self.parent.GetAttributesOf ([self.pidl], -1)
+    for attr in dir (shellcon):
+      if attr.startswith (prefix):
+        if all_attributes & getattr (shellcon, attr):
+          results.add (attr[len (prefix):].lower ())
+    return results
+
+  def attribute (self, attributes):
+    try:
+      attribute = int (attributes)
+    except ValueError:
+      attribute = getattr (shellcon, "SFGAO_" + attributes.upper ())
+    except TypeError:
+      attribute = 0
+      for a in attributes:
+        try:
+          attribute = attribute | a
+        except TypeError:
+          attribute = attribute | getattr (shellcon, "SFGAO_" + a.upper ())
+
+    return bool (self.parent.GetAttributesOf ([self.pidl], attribute) & attribute)
+
+  def name (self, type=shellcon.SHGDN_NORMAL):
+    return self.parent.GetDisplayNameOf (self.pidl, type)
+
 
 class ShellFolder (ShellEntry):
 
@@ -591,7 +633,7 @@ class ShellFolder (ShellEntry):
     if pidl == []:
       self.folder = self.parent
     else:
-      self.folder = self.parent.BindToObject (self.pidl, None, shell.IID_IShellFolder2)
+      self.folder = self.parent.BindToObject (self.pidl, None, shell.IID_IShellFolder)
 
   def __getattr__ (self, attr):
     return getattr (self.folder, attr)
@@ -602,7 +644,7 @@ class ShellFolder (ShellEntry):
       pidls = enum.Next (1)
       if pidls:
         for pidl in pidls:
-          if self.folder.GetAttributesOf ([pidl], shellcon.SFGAO_FOLDER):
+          if (self.folder.GetAttributesOf ([pidl], shellcon.SFGAO_FOLDER) & shellcon.SFGAO_FOLDER):
             yield self.folder_factory (pidl)
           else:
             yield self.item_factory (pidl)
@@ -644,15 +686,16 @@ class RecycledItem (ShellEntry):
 
 class Recycler (ShellFolder):
 
-  def factory (self, pidl):
+  def item_factory (self, pidl):
     return RecycledItem (self, pidl)
+  folder_factory = item_factory
 
 def root ():
   return ShellFolder (shell.SHGetDesktopFolder (), [])
 
 def recycler ():
   return Recycler (
-    shell.SHGetDesktopFolder ().QueryInterface (shell.IID_IShellFolder2),
+    shell.SHGetDesktopFolder ().QueryInterface (shell.IID_IShellFolder),
     shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
   )
 
