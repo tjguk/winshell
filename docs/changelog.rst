@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.5.2
+-----
+
+23rd Mar 2012
+
+* Fix sdist issue with missing __version__.py
+
 0.5
 ---
 
