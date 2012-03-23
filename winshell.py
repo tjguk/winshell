@@ -56,6 +56,9 @@ except ImportError:
 class x_winshell (Exception):
   pass
 
+class x_recycler (x_winshell):
+  pass
+
 #
 # Stolen from winsys
 #
@@ -661,19 +664,42 @@ class ShellFolder (ShellEntry):
   def __getitem__ (self, item):
     return self.get_child (item)
 
-  def enumerate (self, flags=shellcon.SHCONTF_FOLDERS|shellcon.SHCONTF_NONFOLDERS):
-    enum = self.folder.EnumObjects (0, flags)
-    while True:
-      pidls = enum.Next (1)
-      if pidls:
-        for pidl in pidls:
-          if (self.folder.GetAttributesOf ([pidl], shellcon.SFGAO_FOLDER) & shellcon.SFGAO_FOLDER):
+  def folders (self, flags=0):
+    enum = self.folder.EnumObjects (0, flags | shellcon.SHCONTF_FOLDERS)
+    if enum:
+      while True:
+        pidls = enum.Next (1)
+        if pidls:
+          for pidl in pidls:
             yield self.folder_factory (pidl)
-          else:
+        else:
+          break
+
+  def items (self, flags=0):
+    enum = self.folder.EnumObjects (0, flags | shellcon.SHCONTF_NONFOLDERS)
+    if enum:
+      while True:
+        pidls = enum.Next (1)
+        if pidls:
+          for pidl in pidls:
             yield self.item_factory (pidl)
-      else:
-        break
+        else:
+          break
+
+  def enumerate (self, flags=0):
+    for folder in self.folders (flags):
+      yield folder
+    for item in self.items (flags):
+      yield item
   __iter__ = enumerate
+
+  def walk (self, flags=0):
+    folders = list (self.folders (flags))
+    items = list (self.items (flags))
+    yield self, folders, items
+    for folder in folders:
+      for result in folder.walk (flags):
+        yield result
 
   def folder_factory (self, pidl):
     return ShellFolder (self, pidl)
@@ -720,10 +746,13 @@ class Recycler (ShellFolder):
     return RecycledItem (self, pidl)
   folder_factory = item_factory
 
+  def empty (self):
+    shell.SHEmptyRecycleBin (None, None, 0)
+
   def restore_newest (self, original_filepath):
     candidates = self.versions (original_filepath)
     if not candidates:
-      raise RuntimeError ("%s not found in the Recycle Bin" % original_filepath)
+      raise x_recycler ("%s not found in the Recycle Bin" % original_filepath)
     newest = max (candidates, key=lambda entry: entry.getmtime ())
     newest.restore ()
 
