@@ -23,7 +23,7 @@ http://www.opensource.org/licenses/mit-license.php
 
 """
 
-from __version__ import __VERSION__
+from __winshell_version__ import __VERSION__
 
 import os, sys
 import win32con
