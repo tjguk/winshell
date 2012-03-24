@@ -1,6 +1,7 @@
 # -*- coding: UTF8 -*-
 import os, sys
 import filecmp
+import operator
 import shutil
 import tempfile
 import time
@@ -371,6 +372,64 @@ class TestShortcuts (test_base.TestCase):
       self.assertTrue (sys.stdout.read ().startswith ("{\n  -unsaved-"))
     finally:
       sys.stdout = _stdout
+
+class TestRecycler (test_base.TestCase):
+
+  #
+  # Fixtures
+  #
+  def setUp (self):
+    self.temppath = tempfile.mkdtemp ()
+    handle, self.tempfile = tempfile.mkstemp (dir=self.temppath)
+    os.close (handle)
+
+    self.deleted_files = set ()
+    for i in range (3):
+      f = open (self.tempfile, "w")
+      try:
+        timestamp = str (time.time ())
+        f.write (timestamp)
+      finally:
+        f.close ()
+      mtime = winshell.datetime_from_pytime (os.path.getmtime (self.tempfile))
+      self.deleted_files.add ((timestamp, os.path.getsize (self.tempfile), mtime))
+      winshell.delete_file (self.tempfile, silent=True, no_confirm=True)
+
+  def tearDown (self):
+    shutil.rmtree (self.temppath)
+
+  #
+  # Support Functions
+  #
+
+  #
+  # Tests
+  #
+  def test_factory_function (self):
+    recycler = winshell.Recycler ()
+    self.assertIsInstance (recycler, winshell.Recycler)
+
+  def test_iter (self):
+    for item in winshell.Recycler ():
+      if item.original_filename ().lower () == self.tempfile:
+        break
+    self.assertIsInstance (item, winshell.RecycledItem)
+    self.assertEqualCI (item.original_filename (), self.tempfile)
+
+  def test_versions (self):
+    recycler = winshell.Recycler ()
+    versions = recycler.versions (self.tempfile)
+    versions_info = set ()
+    for version in versions:
+      versions_info.add (("".join (version.contents ()), version.getsize (), version.getmtime ()))
+    self.assertEqual (self.deleted_files, versions_info)
+
+  def test_restore_newest (self):
+    recycler = winshell.Recycler ()
+    mtime = max ([item.getmtime () for item in recycler.versions (self.tempfile)])
+    recycler.restore_newest (self.tempfile)
+    self.assertTrue (os.path.exists (self.tempfile))
+    self.assertEquals (mtime, winshell.datetime_from_pytime (os.path.getmtime (self.tempfile)))
 
 if __name__ == '__main__':
   unittest.main ()

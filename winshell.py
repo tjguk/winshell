@@ -26,10 +26,12 @@ http://www.opensource.org/licenses/mit-license.php
 from __winshell_version__ import __VERSION__
 
 import os, sys
+import datetime
 import win32con
 from win32com import storagecon
 from win32com.shell import shell, shellcon
 import win32api
+import win32timezone
 import pythoncom
 
 #
@@ -68,6 +70,9 @@ def wrapped (fn, *args, **kwargs):
 class Unset (object): pass
 UNSET = Unset ()
 
+_desktop_folder = shell.SHGetDesktopFolder ()
+PyIShellFolder = type (_desktop_folder)
+
 def indented (text, level, indent=2):
   """Take a multiline text and indent it as a block"""
   return "\n".join ("%s%s" % (level * indent * " ", s) for s in text.splitlines ())
@@ -84,6 +89,30 @@ def dumped_dict (d, level, indent=2):
 
 def dumped_flags (f, lookups, level, indent=2):
   return dumped ("\n".join (lookups.names_from_value (f)) or "None", level, indent)
+
+def datetime_from_pytime (pytime):
+  if isinstance (pytime, datetime.datetime):
+    return pytime
+  else:
+    return datetime.datetime.fromtimestamp (int (pytime))
+
+class WinshellObject (object):
+
+  def __str__ (self):
+    return self.as_string ()
+
+  def __repr__ (self):
+    return "<%s: %s>" % (self.__class__.__name__, self)
+
+  def as_string (self):
+    raise NotImplementedError
+
+  def dumped (self):
+    raise NotImplementedError
+
+  def dump (self, level=0):
+    sys.stdout.write (self.dumped (level=level))
+
 
 #
 # This was originally a workaround when Win9x didn't implement SHGetFolderPath.
@@ -314,7 +343,7 @@ def delete_file (
     hWnd
   )
 
-class Shortcut (object):
+class Shortcut (WinshellObject):
 
   show_states = {
     "normal" : win32con.SW_SHOWNORMAL,
@@ -352,9 +381,6 @@ class Shortcut (object):
       if not attribute.startswith ("_") and isinstance (value, property):
         output.append ("%s: %s" % (attribute, getattr (self, attribute)))
     return dumped ("\n".join (output), level)
-
-  def dump (self, level=0):
-    sys.stdout.write (self.dumped (level=level))
 
   @classmethod
   def from_lnk (cls, lnk_filepath):
@@ -460,31 +486,6 @@ def shortcut (source=UNSET):
   else:
     return Shortcut.from_target (source)
 
-def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("", 0), Description = ""):
-  """Create a Windows shortcut:
-
-  Path - As what file should the shortcut be created?
-  Target - What command should the desktop use?
-  Arguments - What arguments should be supplied to the command?
-  StartIn - What folder should the command start in?
-  Icon - (filename, index) What icon should be used for the shortcut?
-  Description - What description should the shortcut be given?
-
-  eg
-  CreateShortcut (
-    Path=os.path.join (desktop (), "PythonI.lnk"),
-    Target=r"c:\python\python.exe",
-    Icon=(r"c:\python\python.exe", 0),
-    Description="Python Interpreter"
-  )
-  """
-  lnk = shortcut (Target)
-  lnk.arguments = Arguments
-  lnk.working_directory = StartIn
-  lnk.icon_location = Icon
-  lnk.description = Description
-  lnk.write (Path)
-
 #
 # Constants for structured storage
 #
@@ -577,17 +578,39 @@ def structured_storage (filename):
   if application: result['application'] = application
   return result
 
-class ShellEntry (object):
+class ShellItem (WinshellObject):
 
   def __init__ (self, parent, pidl):
+    #
+    # parent is a PyIShellFolder object (or something similar)
+    # pidl is a PyIDL object (basically: a list of SHITEMs)
+    #
+    assert parent is None or isinstance (parent, ShellFolder), "parent is %r" % parent
     self.parent = parent
     self.pidl = pidl
 
-  def __str__ (self):
-    return self.as_string ()
+  @classmethod
+  def from_pidl (cls, pidl, parent_obj=None):
+    if parent_obj is None:
+      #
+      # pidl is absolute
+      #
+      parent_obj = _desktop.BindToObject (pidl[:-1], None, shell.IID_IShellFolder)
+      rpidl = pidl[-1:]
+    else:
+      #
+      # pidl is relative
+      #
+      rpidl = pidl
+    return cls (parent_obj, rpidl)
 
-  def __repr__ (self):
-    return "<%s: %s>" % (self.__class__.__name__, self)
+  @classmethod
+  def from_path (cls, path):
+    _, pidl, flags = _desktop.ParseDisplayName (0, None, path, shellcon.SFGAO_FOLDER)
+    if flags & shellcon.SFGAO_FOLDER:
+      return ShellFolder.from_pidl (pidl)
+    else:
+      return ShellItem.from_pidl (pidl)
 
   def as_string (self):
     return self.name ()
@@ -599,13 +622,10 @@ class ShellEntry (object):
     output.append (dumped_list (self.attributes (), level))
     return dumped ("\n".join (output), level)
 
-  def dump (self, level=0):
-    sys.stdout.write (self.dumped (level=level))
-
   def attributes (self):
     prefix = "SFGAO_"
     results = set ()
-    all_attributes = self.parent.GetAttributesOf ([self.pidl], -1)
+    all_attributes = self.parent._folder.GetAttributesOf ([self.pidl], -1)
     for attr in dir (shellcon):
       if attr.startswith (prefix):
         if all_attributes & getattr (shellcon, attr):
@@ -625,20 +645,23 @@ class ShellEntry (object):
         except TypeError:
           attribute = attribute | getattr (shellcon, "SFGAO_" + a.upper ())
 
-    return bool (self.parent.GetAttributesOf ([self.pidl], attribute) & attribute)
+    return bool (self.parent._folder.GetAttributesOf ([self.pidl], attribute) & attribute)
+
+  def filename (self):
+    return self.name (shellcon.SHGDN_FORPARSING)
 
   def name (self, type=shellcon.SHGDN_NORMAL):
-    return self.parent.GetDisplayNameOf (self.pidl, type)
+    return self.parent._folder.GetDisplayNameOf (self.pidl, type)
 
   def stat (self):
-    stream = self.parent.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
+    stream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
     return make_storage_stat (stream.Stat ())
 
   def getsize (self):
     return self.stat ()[2]
 
   def getmtime (self):
-    return self.stat ()[3]
+    return datetime_from_pytime (self.stat ()[3])
 
   def getctime (self):
     return self.stat ()[4]
@@ -646,26 +669,20 @@ class ShellEntry (object):
   def getatime (self):
     return self.stat ()[5]
 
-class ShellFolder (ShellEntry):
+class ShellFolder (ShellItem):
 
   def __init__ (self, parent, pidl):
-    ShellEntry.__init__ (self, parent, pidl)
-    #
-    # If we're at the desktop, we are our own parent
-    #
-    if pidl == []:
-      self.folder = self.parent
+    ShellItem.__init__ (self, parent, pidl)
+    if parent:
+      self._folder = self.parent._folder.BindToObject (self.pidl, None, shell.IID_IShellFolder)
     else:
-      self.folder = self.parent.BindToObject (self.pidl, None, shell.IID_IShellFolder)
-
-  def __getattr__ (self, attr):
-    return getattr (self.folder, attr)
+      self._folder = None
 
   def __getitem__ (self, item):
     return self.get_child (item)
 
   def folders (self, flags=0):
-    enum = self.folder.EnumObjects (0, flags | shellcon.SHCONTF_FOLDERS)
+    enum = self._folder.EnumObjects (0, flags | shellcon.SHCONTF_FOLDERS)
     if enum:
       while True:
         pidls = enum.Next (1)
@@ -676,7 +693,7 @@ class ShellFolder (ShellEntry):
           break
 
   def items (self, flags=0):
-    enum = self.folder.EnumObjects (0, flags | shellcon.SHCONTF_NONFOLDERS)
+    enum = self._folder.EnumObjects (0, flags | shellcon.SHCONTF_NONFOLDERS)
     if enum:
       while True:
         pidls = enum.Next (1)
@@ -705,34 +722,37 @@ class ShellFolder (ShellEntry):
     return ShellFolder (self, pidl)
 
   def item_factory (self, pidl):
-    return ShellEntry (self, pidl)
+    return ShellItem (self, pidl)
 
   def get_child (self, name, hWnd=None):
-    n_eaten, pidl, attributes = self.folder.ParseDisplayName (hWnd, None, name, shellcon.SFGAO_FOLDER)
+    n_eaten, pidl, attributes = self._folder.ParseDisplayName (hWnd, None, name, shellcon.SFGAO_FOLDER)
     if attributes & shellcon.SFGAO_FOLDER:
       return self.folder_factory (pidl)
     else:
       return self.item_factory (pidl)
 
-class RecycledItem (ShellEntry):
+class RecycledItem (ShellItem):
 
-  def __str__ (self):
-    return self.real_filename ()
+  def __eq__ (self, other):
+    return self.real_filename (), self.getmtime () == other.real_filename (), other.getmtime ()
 
-  def __repr__ (self):
-    return "<%s: %s -> %s>" % (self.__class__.__name__, self.real_filename (), self.original_filename ())
+  def __le__ (self, other):
+    return self.real_filename (), self.getmtime () < other.real_filename (), other.getmtime ()
+
+  def as_string (self):
+    return "%s recycled at %s" % (self.original_filename (), self.getmtime ())
 
   def original_filename (self):
-    return self.parent.GetDisplayNameOf (self.pidl, shellcon.SHGDN_NORMAL)
+    return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_NORMAL)
 
   def real_filename (self):
-    return self.parent.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
+    return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
 
   def restore (self):
     move_file (self.real_filename (), self.original_filename ())
 
-  def contents (self, buffer_size):
-    istream = self.parent.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
+  def contents (self, buffer_size=8192):
+    istream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
     while True:
       contents = istream.Read (buffer_size)
       if contents:
@@ -741,6 +761,13 @@ class RecycledItem (ShellEntry):
         break
 
 class Recycler (ShellFolder):
+
+  def __init__ (self):
+    ShellFolder.__init__ (
+      self,
+      ShellDesktop (),
+      shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
+    )
 
   def item_factory (self, pidl):
     return RecycledItem (self, pidl)
@@ -760,14 +787,54 @@ class Recycler (ShellFolder):
     original_filepath = original_filepath.lower ()
     return [entry for entry in self if entry.original_filename ().lower () == original_filepath]
 
-def root ():
-  return ShellFolder (shell.SHGetDesktopFolder (), [])
+class ShellDesktop (ShellFolder):
 
-def recycler ():
-  return Recycler (
-    shell.SHGetDesktopFolder ().QueryInterface (shell.IID_IShellFolder),
-    shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
+  def __init__ (self):
+    ShellFolder.__init__ (self, None, [])
+    self._folder = _desktop_folder
+
+  def name (self, type=shellcon.SHGDN_NORMAL):
+    return self._folder.GetDisplayNameOf (self.pidl, type)
+
+def shell_object (shell_object=UNSET):
+  if shell_object is None:
+    return None
+  elif shell_object is UNSET:
+    return ShellDesktop ()
+  elif isinstance (shell_object, ShellItem):
+    return shell_object
+  else:
+    return ShellDesktop ().get_child (shell_object)
+
+#
+# Legacy functions, retained for backwards compatibility
+#
+
+def CreateShortcut (Path, Target, Arguments = "", StartIn = "", Icon = ("", 0), Description = ""):
+  """Create a Windows shortcut:
+
+  Path - As what file should the shortcut be created?
+  Target - What command should the desktop use?
+  Arguments - What arguments should be supplied to the command?
+  StartIn - What folder should the command start in?
+  Icon - (filename, index) What icon should be used for the shortcut?
+  Description - What description should the shortcut be given?
+
+  eg
+  CreateShortcut (
+    Path=os.path.join (desktop (), "PythonI.lnk"),
+    Target=r"c:\python\python.exe",
+    Icon=(r"c:\python\python.exe", 0),
+    Description="Python Interpreter"
   )
+  """
+  lnk = shortcut (Target)
+  lnk.arguments = Arguments
+  lnk.working_directory = StartIn
+  lnk.icon_location = Icon
+  lnk.description = Description
+  lnk.write (Path)
+
 
 if __name__ == '__main__':
   try:
