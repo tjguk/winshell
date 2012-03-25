@@ -755,12 +755,6 @@ class RecycledItem (ShellItem):
   PID_DISPLACED_FROM = 2 # Location that file was deleted from.
   PID_DISPLACED_DATE = 3 # Date that the file was deleted.
 
-  def __eq__ (self, other):
-    return self.real_filename (), self.recycle_date () == other.real_filename (), other.recycle_date ()
-
-  def __le__ (self, other):
-    return self.real_filename (), self.recycle_date () < other.real_filename (), other.recycle_date ()
-
   def as_string (self):
     return "%s recycled at %s" % (self.original_filename (), self.recycle_date ())
 

@@ -1,5 +1,9 @@
 # -*- coding: UTF8 -*-
 import os, sys
+try:
+  import ConfigParser
+except ImportError:
+  import configparser as ConfigParser
 import filecmp
 import operator
 import shutil
@@ -20,6 +24,24 @@ import winshell
 import test_base
 if sys.version_info >= (2, 5):
   from test_winshell_25plus import *
+
+try:
+  unicode
+except NameError:
+  def b (s): return bytes (s, encoding="ascii")
+else:
+  def b (s): return str (s)
+
+ini = ConfigParser.ConfigParser ()
+ini.read ("testing_config.ini")
+
+def get_config (section, item, function=ConfigParser.ConfigParser.get):
+  if ini.has_option (section, item):
+    return function (ini, section, item)
+  else:
+    return None
+
+go_slow = bool (int (get_config ("general", "go_slow")))
 
 class TestSpecialFolders (test_base.TestCase):
   #
@@ -385,20 +407,16 @@ class TestRecycler (test_base.TestCase):
 
     self.temppath = tempfile.mkdtemp (dir=self.root)
     handle, self.tempfile = tempfile.mkstemp (dir=self.temppath)
-    print "tempfile:", self.tempfile
     os.close (handle)
 
     self.deleted_files = set ()
-    for i in range (3):
-      f = open (self.tempfile, "w")
-      try:
-        timestamp = str (time.time ())
-        f.write (timestamp)
-      finally:
-        f.close ()
-      mtime = winshell.datetime_from_pytime (os.path.getmtime (self.tempfile))
-      self.deleted_files.add ((timestamp, os.path.getsize (self.tempfile), mtime))
-      winshell.delete_file (self.tempfile, silent=True, no_confirm=True)
+    f = open (self.tempfile, "w")
+    try:
+      timestamp = b("*")
+      f.write (timestamp)
+    finally:
+      f.close ()
+    winshell.delete_file (self.tempfile, silent=True, no_confirm=True)
 
   def tearDown (self):
     shutil.rmtree (self.temppath)
@@ -423,23 +441,58 @@ class TestRecycler (test_base.TestCase):
     for item in winshell.Recycler ():
       if item.original_filename ().lower () == self.tempfile:
         break
+    else:
+      raise RuntimeError ("%s not found in Recycler" % self.tempfile)
     self.assertIsInstance (item, winshell.RecycledItem)
     self.assertEqualCI (item.original_filename (), self.tempfile)
 
-  def test_versions (self):
-    recycler = winshell.Recycler ()
-    versions = recycler.versions (self.tempfile)
-    versions_info = set ()
-    for version in versions:
-      versions_info.add (("".join (version.contents ()), version.getsize (), version.getmtime ()))
-    self.assertEqual (self.deleted_files, versions_info)
+if go_slow:
+  class TestRecycler (test_base.TestCase):
 
-  def test_restore_newest (self):
-    recycler = winshell.Recycler ()
-    mtime = max ([item.getmtime () for item in recycler.versions (self.tempfile)])
-    recycler.restore_newest (self.tempfile)
-    self.assertTrue (os.path.exists (self.tempfile))
-    self.assertEquals (mtime, winshell.datetime_from_pytime (os.path.getmtime (self.tempfile)))
+    #
+    # Fixtures
+    #
+    def setUp (self):
+      self.root = os.path.join (tempfile.gettempdir (), "winshell")
+      if not os.path.exists (self.root):
+        os.mkdir (self.root)
+
+      self.temppath = tempfile.mkdtemp (dir=self.root)
+      handle, self.tempfile = tempfile.mkstemp (dir=self.temppath)
+      os.close (handle)
+
+      self.deleted_files = set ()
+      for i in range (3):
+        f = open (self.tempfile, "wb")
+        try:
+          timestamp = b("*") * (i + 1)
+          f.write (timestamp)
+        finally:
+          f.close ()
+        self.deleted_files.add ((timestamp, os.path.getsize (self.tempfile)))
+        winshell.delete_file (self.tempfile, silent=True, no_confirm=True)
+
+        time.sleep (1.1)
+
+    def tearDown (self):
+      shutil.rmtree (self.temppath)
+
+    def test_versions (self):
+      recycler = winshell.Recycler ()
+      versions = recycler.versions (self.tempfile)
+      versions_info = set ()
+      for version in versions:
+        versions_info.add ((b("").join (version.contents ()), version.getsize ()))
+      self.assertEqual (self.deleted_files, versions_info)
+
+    def test_restore_newest (self):
+      recycler = winshell.Recycler ()
+      newest = sorted (recycler.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
+      newest_contents = b("").join (newest.contents ())
+      recycler.restore_newest (self.tempfile)
+      self.assertTrue (os.path.exists (self.tempfile))
+      self.assertEquals (open (self.tempfile, "rb").read (), newest_contents)
+
 
 if __name__ == '__main__':
   unittest.main ()
