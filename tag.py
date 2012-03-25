@@ -2,12 +2,12 @@ import os, sys
 import subprocess
 
 PROJECT = "winshell"
-VERSION_FILE = "__%s_version__.py" % PROJECT)
+VERSION_FILE = "__%s_version__.py" % PROJECT
 
 def git (command):
-  if isinstance (basestring, command):
+  if isinstance (command, basestring):
     command = [command]
-  return subprocess.check_output (["git"] + command)
+  return subprocess.check_output (["git.cmd"] + command)
 
 VERSION_BLOCK = """
 # -*- coding: UTF8 -*-
