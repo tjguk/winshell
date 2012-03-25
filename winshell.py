@@ -96,6 +96,21 @@ def datetime_from_pytime (pytime):
   else:
     return datetime.datetime.fromtimestamp (int (pytime))
 
+#
+# Given a namespace (eg a module) and a pattern (eg "FMTID_%s")
+# allow a value from within that space to be specified by name
+# or by value.
+#
+def from_constants (namespace, pattern, factory):
+  pattern = pattern.lower ()
+  def _from_constants (value):
+    try:
+      return factory (value)
+    except (ValueError, TypeError):
+      for name in dir (namespace):
+        if name.lower () == pattern % value.lower ():
+          return getattr (namespace, name)
+
 class WinshellObject (object):
 
   def __str__ (self):
@@ -669,6 +684,10 @@ class ShellItem (WinshellObject):
   def getatime (self):
     return self.stat ()[5]
 
+  def detail (self, fmtid, pid):
+    folder2 = self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
+    return folder2.GetDetailsEx (self.pidl, (fmtid, pid))
+
 class ShellFolder (ShellItem):
 
   def __init__ (self, parent, pidl):
@@ -733,17 +752,26 @@ class ShellFolder (ShellItem):
 
 class RecycledItem (ShellItem):
 
+  PID_DISPLACED_FROM = 2 # Location that file was deleted from.
+  PID_DISPLACED_DATE = 3 # Date that the file was deleted.
+
   def __eq__ (self, other):
-    return self.real_filename (), self.getmtime () == other.real_filename (), other.getmtime ()
+    return self.real_filename (), self.recycle_date () == other.real_filename (), other.recycle_date ()
 
   def __le__ (self, other):
-    return self.real_filename (), self.getmtime () < other.real_filename (), other.getmtime ()
+    return self.real_filename (), self.recycle_date () < other.real_filename (), other.recycle_date ()
 
   def as_string (self):
-    return "%s recycled at %s" % (self.original_filename (), self.getmtime ())
+    return "%s recycled at %s" % (self.original_filename (), self.recycle_date ())
 
   def original_filename (self):
-    return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_NORMAL)
+    return os.path.join (
+      self.detail (shell.FMTID_Displaced, self.PID_DISPLACED_FROM) ,
+      self.name (shellcon.SHGDN_INFOLDER)
+    )
+
+  def recycle_date (self):
+    return datetime_from_pytime (self.detail (shell.FMTID_Displaced, self.PID_DISPLACED_DATE))
 
   def real_filename (self):
     return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
@@ -773,14 +801,19 @@ class Recycler (ShellFolder):
     return RecycledItem (self, pidl)
   folder_factory = item_factory
 
-  def empty (self):
-    shell.SHEmptyRecycleBin (None, None, 0)
+  @staticmethod
+  def empty (confirm=True, show_progress=True, sound=True):
+    flags = 0
+    if not confirm: flags |= shellcon.SHERB_NOCONFIRMATION
+    if not show_progress: flags |= shellcon.SHERB_NOPROGRESSUI
+    if not sound: flags |= shellcon.SHERB_NOSOUND
+    shell.SHEmptyRecycleBin (None, None, flags)
 
   def restore_newest (self, original_filepath):
     candidates = self.versions (original_filepath)
     if not candidates:
       raise x_recycler ("%s not found in the Recycle Bin" % original_filepath)
-    newest = max (candidates, key=lambda entry: entry.getmtime ())
+    newest = max (candidates, key=lambda entry: entry.recycle_date ())
     newest.restore ()
 
   def versions (self, original_filepath):
