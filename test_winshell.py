@@ -26,9 +26,11 @@ if sys.version_info >= (2, 5):
   from test_winshell_25plus import *
 
 try:
-  empty = bytes ()
+  unicode
 except NameError:
-  empty = str ()
+  def b (s): return bytes (s, encoding="ascii")
+else:
+  def b (s): return str (s)
 
 ini = ConfigParser.ConfigParser ()
 ini.read ("testing_config.ini")
@@ -410,7 +412,7 @@ class TestRecycler (test_base.TestCase):
     self.deleted_files = set ()
     f = open (self.tempfile, "w")
     try:
-      timestamp = "*"
+      timestamp = b("*")
       f.write (timestamp)
     finally:
       f.close ()
@@ -461,9 +463,9 @@ if go_slow:
 
       self.deleted_files = set ()
       for i in range (3):
-        f = open (self.tempfile, "w")
+        f = open (self.tempfile, "wb")
         try:
-          timestamp = "*" * (i + 1)
+          timestamp = b("*") * (i + 1)
           f.write (timestamp)
         finally:
           f.close ()
@@ -480,13 +482,13 @@ if go_slow:
       versions = recycler.versions (self.tempfile)
       versions_info = set ()
       for version in versions:
-        versions_info.add ((empty.join (version.contents ()), version.getsize ()))
+        versions_info.add ((b("").join (version.contents ()), version.getsize ()))
       self.assertEqual (self.deleted_files, versions_info)
 
     def test_restore_newest (self):
       recycler = winshell.Recycler ()
       newest = sorted (recycler.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
-      newest_contents = empty.join (newest.contents ())
+      newest_contents = b("").join (newest.contents ())
       recycler.restore_newest (self.tempfile)
       self.assertTrue (os.path.exists (self.tempfile))
       self.assertEquals (open (self.tempfile, "rb").read (), newest_contents)
