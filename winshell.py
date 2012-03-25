@@ -782,7 +782,10 @@ class RecycledItem (ShellItem):
       else:
         break
 
-class RecycleBin (ShellFolder):
+class ShellRecycleBin (ShellFolder):
+  """Wrap the shell object which represents the union of all the
+  recycle bins on this system.
+  """
 
   def __init__ (self):
     ShellFolder.__init__ (
@@ -813,6 +816,12 @@ class RecycleBin (ShellFolder):
   def versions (self, original_filepath):
     original_filepath = original_filepath.lower ()
     return [entry for entry in self if entry.original_filename ().lower () == original_filepath]
+
+def recycle_bin ():
+  """Return an object representing all the recycle bins on the
+  system.
+  """
+  return ShellRecycleBin ()
 
 class ShellDesktop (ShellFolder):
 

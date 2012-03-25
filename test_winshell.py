@@ -429,20 +429,20 @@ class TestRecycler (test_base.TestCase):
   # Tests
   #
   def test_factory_function (self):
-    recycle_bin = winshell.RecycleBin ()
-    self.assertIsInstance (recycle_bin, winshell.RecycleBin)
+    recycle_bin = winshell.recycle_bin ()
+    self.assertIsInstance (recycle_bin, winshell.recycle_bin)
 
   def test_empty (self):
-    recycle_bin = winshell.RecycleBin ()
+    recycle_bin = winshell.recycle_bin ()
     recycle_bin.empty (confirm=False, show_progress=False, sound=False)
     self.assertFalse (list (recycle_bin))
 
   def test_iter (self):
-    for item in winshell.RecycleBin ():
+    for item in winshell.recycle_bin ():
       if item.original_filename ().lower () == self.tempfile:
         break
     else:
-      raise RuntimeError ("%s not found in RecycleBin" % self.tempfile)
+      raise RuntimeError ("%s not found in recycle_bin" % self.tempfile)
     self.assertIsInstance (item, winshell.RecycledItem)
     self.assertEqualCI (item.original_filename (), self.tempfile)
 
@@ -478,7 +478,7 @@ if go_slow:
       shutil.rmtree (self.temppath)
 
     def test_versions (self):
-      recycle_bin = winshell.RecycleBin ()
+      recycle_bin = winshell.recycle_bin ()
       versions = recycle_bin.versions (self.tempfile)
       versions_info = set ()
       for version in versions:
@@ -486,7 +486,7 @@ if go_slow:
       self.assertEqual (self.deleted_files, versions_info)
 
     def test_restore_newest (self):
-      recycle_bin = winshell.RecycleBin ()
+      recycle_bin = winshell.recycle_bin ()
       newest = sorted (recycle_bin.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
       newest_contents = b("").join (newest.contents ())
       recycle_bin.restore_newest (self.tempfile)
