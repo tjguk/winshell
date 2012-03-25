@@ -16,6 +16,9 @@ __RELEASE__ = ""
 """
 
 def main (tag):
+  #
+  # Add stuff to changelog
+  #
   git ("checkout master")
   git ("pull")
   with open (VERSION_FILE, "w") as f:
@@ -33,6 +36,10 @@ def main (tag):
   git ("push --tags")
 
   subprocess.call ("python setup.py sdist")
+
+  #
+  # Reset version.py to next version-dev
+  #
 
 if __name__ == '__main__':
   main (*sys.argv[1:])
