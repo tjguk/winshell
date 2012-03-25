@@ -1,3 +1,3 @@
 # -*- coding: UTF8 -*-
 __VERSION__ = "0.6"
-__RELEASE__ = "dev"
+__RELEASE__ = ""
