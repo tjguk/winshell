@@ -807,7 +807,7 @@ class Recycler (ShellFolder):
     candidates = self.versions (original_filepath)
     if not candidates:
       raise x_recycler ("%s not found in the Recycle Bin" % original_filepath)
-    newest = max (candidates, key=lambda entry: entry.recycle_date ())
+    newest = sorted (candidates, key=lambda entry: entry.recycle_date ())[-1]
     newest.restore ()
 
   def versions (self, original_filepath):
