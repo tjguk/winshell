@@ -379,8 +379,13 @@ class TestRecycler (test_base.TestCase):
   # Fixtures
   #
   def setUp (self):
-    self.temppath = tempfile.mkdtemp ()
+    self.root = os.path.join (tempfile.gettempdir (), "winshell")
+    if not os.path.exists (self.root):
+      os.mkdir (self.root)
+
+    self.temppath = tempfile.mkdtemp (dir=self.root)
     handle, self.tempfile = tempfile.mkstemp (dir=self.temppath)
+    print "tempfile:", self.tempfile
     os.close (handle)
 
     self.deleted_files = set ()
@@ -408,6 +413,11 @@ class TestRecycler (test_base.TestCase):
   def test_factory_function (self):
     recycler = winshell.Recycler ()
     self.assertIsInstance (recycler, winshell.Recycler)
+
+  def test_empty (self):
+    recycler = winshell.Recycler ()
+    recycler.empty (confirm=False, show_progress=False, sound=False)
+    self.assertFalse (list (recycler))
 
   def test_iter (self):
     for item in winshell.Recycler ():
