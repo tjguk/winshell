@@ -443,7 +443,7 @@ class TestRecycler (test_base.TestCase):
         break
     else:
       raise RuntimeError ("%s not found in recycle_bin" % self.tempfile)
-    self.assertIsInstance (item, winshell.RecycledItem)
+    self.assertIsInstance (item, winshell.ShellRecycledItem)
     self.assertEqualCI (item.original_filename (), self.tempfile)
 
 if go_slow:

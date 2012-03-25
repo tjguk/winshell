@@ -750,7 +750,7 @@ class ShellFolder (ShellItem):
     else:
       return self.item_factory (pidl)
 
-class RecycledItem (ShellItem):
+class ShellRecycledItem (ShellItem):
 
   PID_DISPLACED_FROM = 2 # Location that file was deleted from.
   PID_DISPLACED_DATE = 3 # Date that the file was deleted.
@@ -795,7 +795,7 @@ class ShellRecycleBin (ShellFolder):
     )
 
   def item_factory (self, pidl):
-    return RecycledItem (self, pidl)
+    return ShellRecycledItem (self, pidl)
   folder_factory = item_factory
 
   @staticmethod
