@@ -489,7 +489,7 @@ if go_slow:
       recycle_bin = winshell.recycle_bin ()
       newest = sorted (recycle_bin.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
       newest_contents = b("").join (newest.contents ())
-      recycle_bin.restore_newest (self.tempfile)
+      recycle_bin.undelete (self.tempfile)
       self.assertTrue (os.path.exists (self.tempfile))
       self.assertEquals (open (self.tempfile, "rb").read (), newest_contents)
 

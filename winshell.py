@@ -806,7 +806,7 @@ class ShellRecycleBin (ShellFolder):
     if not sound: flags |= shellcon.SHERB_NOSOUND
     shell.SHEmptyRecycleBin (None, None, flags)
 
-  def restore_newest (self, original_filepath):
+  def undelete (self, original_filepath):
     candidates = self.versions (original_filepath)
     if not candidates:
       raise x_recycler ("%s not found in the Recycle Bin" % original_filepath)
@@ -822,6 +822,9 @@ def recycle_bin ():
   system.
   """
   return ShellRecycleBin ()
+
+def undelete (filepath):
+  recycle_bin ().undelete (filepath)
 
 class ShellDesktop (ShellFolder):
 
