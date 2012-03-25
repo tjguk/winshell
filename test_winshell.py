@@ -429,20 +429,20 @@ class TestRecycler (test_base.TestCase):
   # Tests
   #
   def test_factory_function (self):
-    recycler = winshell.Recycler ()
-    self.assertIsInstance (recycler, winshell.Recycler)
+    recycle_bin = winshell.RecycleBin ()
+    self.assertIsInstance (recycle_bin, winshell.RecycleBin)
 
   def test_empty (self):
-    recycler = winshell.Recycler ()
-    recycler.empty (confirm=False, show_progress=False, sound=False)
-    self.assertFalse (list (recycler))
+    recycle_bin = winshell.RecycleBin ()
+    recycle_bin.empty (confirm=False, show_progress=False, sound=False)
+    self.assertFalse (list (recycle_bin))
 
   def test_iter (self):
-    for item in winshell.Recycler ():
+    for item in winshell.RecycleBin ():
       if item.original_filename ().lower () == self.tempfile:
         break
     else:
-      raise RuntimeError ("%s not found in Recycler" % self.tempfile)
+      raise RuntimeError ("%s not found in RecycleBin" % self.tempfile)
     self.assertIsInstance (item, winshell.RecycledItem)
     self.assertEqualCI (item.original_filename (), self.tempfile)
 
@@ -478,18 +478,18 @@ if go_slow:
       shutil.rmtree (self.temppath)
 
     def test_versions (self):
-      recycler = winshell.Recycler ()
-      versions = recycler.versions (self.tempfile)
+      recycle_bin = winshell.RecycleBin ()
+      versions = recycle_bin.versions (self.tempfile)
       versions_info = set ()
       for version in versions:
         versions_info.add ((b("").join (version.contents ()), version.getsize ()))
       self.assertEqual (self.deleted_files, versions_info)
 
     def test_restore_newest (self):
-      recycler = winshell.Recycler ()
-      newest = sorted (recycler.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
+      recycle_bin = winshell.RecycleBin ()
+      newest = sorted (recycle_bin.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
       newest_contents = b("").join (newest.contents ())
-      recycler.restore_newest (self.tempfile)
+      recycle_bin.restore_newest (self.tempfile)
       self.assertTrue (os.path.exists (self.tempfile))
       self.assertEquals (open (self.tempfile, "rb").read (), newest_contents)
 

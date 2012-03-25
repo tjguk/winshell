@@ -58,7 +58,7 @@ except ImportError:
 class x_winshell (Exception):
   pass
 
-class x_recycler (x_winshell):
+class x_recycle_bin (x_winshell):
   pass
 
 #
@@ -782,7 +782,7 @@ class RecycledItem (ShellItem):
       else:
         break
 
-class Recycler (ShellFolder):
+class RecycleBin (ShellFolder):
 
   def __init__ (self):
     ShellFolder.__init__ (
