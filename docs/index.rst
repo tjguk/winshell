@@ -11,12 +11,13 @@ These are mostly available via the shell module of the pywin32
 extensions, but whenever I need to use them, I've forgotten the
 various constants and so on.
 
-The module offers four areas of functionality:
+The module offers the following areas of functionality:
 
 * :doc:`special-folders`
 * :doc:`file-operations`
 * :doc:`shortcuts`
 * :doc:`structured-storage`
+* :doc:`recycle-bin`
 
 Each of them is exposed by simple functions which offer sane defaults
 for most of the options. Since it's perfectly possible to drop down to

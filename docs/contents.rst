@@ -11,5 +11,6 @@ Contents:
    file-operations
    shortcuts
    structured-storage
+   recycle-bin
    cookbook
    changelog
