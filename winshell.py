@@ -61,6 +61,9 @@ class x_winshell (Exception):
 class x_recycle_bin (x_winshell):
   pass
 
+class x_not_found_in_recycle_bin (x_recycle_bin):
+  pass
+
 #
 # Stolen from winsys
 #
@@ -234,19 +237,21 @@ def _file_operation (
   else:
     target_path = [os.path.abspath (i) for i in target_path]
 
-  flags = 0
+  flags = shellcon.FOF_WANTMAPPINGHANDLE
   if allow_undo: flags |= shellcon.FOF_ALLOWUNDO
   if no_confirm: flags |= shellcon.FOF_NOCONFIRMATION
   if rename_on_collision: flags |= shellcon.FOF_RENAMEONCOLLISION
   if silent: flags |= shellcon.FOF_SILENT
 
-  result, n_aborted = shell.SHFileOperation (
+  result, n_aborted, mapping = shell.SHFileOperation (
     (hWnd or 0, operation, source_path, target_path, flags, None, None)
   )
   if result != 0:
     raise x_winshell (result)
   elif n_aborted:
     raise x_winshell ("%d operations were aborted by the user" % n_aborted)
+
+  return dict (mapping)
 
 def copy_file (
   source_path,
@@ -265,7 +270,7 @@ def copy_file (
   clobber on a name clash, automatically rename on collision
   and display the animation.
   """
-  _file_operation (
+  return _file_operation (
     shellcon.FO_COPY,
     source_path,
     target_path,
@@ -293,7 +298,7 @@ def move_file (
   clobber on a name clash, automatically rename on collision
   and display the animation.
   """
-  _file_operation (
+  return _file_operation (
     shellcon.FO_MOVE,
     source_path,
     target_path,
@@ -321,7 +326,7 @@ def rename_file (
   clobber on a name clash, automatically rename on collision
   and display the animation.
   """
-  _file_operation (
+  return _file_operation (
     shellcon.FO_RENAME,
     source_path,
     target_path,
@@ -347,7 +352,7 @@ def delete_file (
   The default options allow for undo, don't automatically
   clobber on a name clash and display the animation.
   """
-  _file_operation (
+  return _file_operation (
     shellcon.FO_DELETE,
     source_path,
     None,
@@ -770,8 +775,8 @@ class ShellRecycledItem (ShellItem):
   def real_filename (self):
     return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
 
-  def restore (self):
-    move_file (self.real_filename (), self.original_filename ())
+  def undelete (self):
+    return move_file (self.real_filename (), self.original_filename (), rename_on_collision=True)
 
   def contents (self, buffer_size=8192):
     istream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
@@ -807,11 +812,23 @@ class ShellRecycleBin (ShellFolder):
     shell.SHEmptyRecycleBin (None, None, flags)
 
   def undelete (self, original_filepath):
+    """Restore the most recent version of a filepath, returning
+    the filepath it was restored to (as rename-on-collision will
+    apply if a file already exists at that path).
+    """
     candidates = self.versions (original_filepath)
     if not candidates:
-      raise x_recycler ("%s not found in the Recycle Bin" % original_filepath)
+      raise x_not_found_in_recycle_bin ("%s not found in the Recycle Bin" % original_filepath)
     newest = sorted (candidates, key=lambda entry: entry.recycle_date ())[-1]
-    newest.restore ()
+    ostensible_copy_target = os.path.join (
+      os.path.dirname (original_filepath),
+      os.path.basename (newest.real_filename ())
+    ).lower ()
+    for remapped_from, remapped_to in newest.undelete ().items ():
+      if remapped_from.lower () == ostensible_copy_target:
+        return remapped_to
+    else:
+      return original_filepath
 
   def versions (self, original_filepath):
     original_filepath = original_filepath.lower ()
@@ -824,7 +841,7 @@ def recycle_bin ():
   return ShellRecycleBin ()
 
 def undelete (filepath):
-  recycle_bin ().undelete (filepath)
+  return recycle_bin ().undelete (filepath)
 
 class ShellDesktop (ShellFolder):
 
