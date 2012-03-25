@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.6
+---
+
+25th Mar 2012
+
+* Added recycle bin functionality
+* Laid (undocumented) foundations for more general Shell Object handling
+
 0.5.2
 -----
 
