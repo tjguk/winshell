@@ -626,14 +626,14 @@ def structured_storage (filename):
 
 class ShellItem (WinshellObject):
 
-  def __init__ (self, parent, pidl):
+  def __init__ (self, parent, rpidl):
     #
     # parent is a PyIShellFolder object (or something similar)
-    # pidl is a PyIDL object (basically: a list of SHITEMs)
+    # rpidl is a PyIDL object (basically: a list of SHITEMs)
     #
     assert parent is None or isinstance (parent, ShellFolder), "parent is %r" % parent
     self.parent = parent
-    self.pidl = pidl
+    self.rpidl = rpidl
 
   @classmethod
   def from_pidl (cls, pidl, parent_obj=None):
@@ -652,11 +652,11 @@ class ShellItem (WinshellObject):
 
   @classmethod
   def from_path (cls, path):
-    _, pidl, flags = _desktop.ParseDisplayName (0, None, path, shellcon.SFGAO_FOLDER)
+    _, rpidl, flags = _desktop.ParseDisplayName (0, None, path, shellcon.SFGAO_FOLDER)
     if flags & shellcon.SFGAO_FOLDER:
-      return ShellFolder.from_pidl (pidl)
+      return ShellFolder.from_pidl (rpidl)
     else:
-      return ShellItem.from_pidl (pidl)
+      return ShellItem.from_pidl (rpidl)
 
   def as_string (self):
     return self.name ()
@@ -671,7 +671,7 @@ class ShellItem (WinshellObject):
   def attributes (self):
     prefix = "SFGAO_"
     results = set ()
-    all_attributes = self.parent._folder.GetAttributesOf ([self.pidl], -1)
+    all_attributes = self.parent._folder.GetAttributesOf ([self.rpidl], -1)
     for attr in dir (shellcon):
       if attr.startswith (prefix):
         if all_attributes & getattr (shellcon, attr):
@@ -691,16 +691,16 @@ class ShellItem (WinshellObject):
         except TypeError:
           attribute = attribute | getattr (shellcon, "SFGAO_" + a.upper ())
 
-    return bool (self.parent._folder.GetAttributesOf ([self.pidl], attribute) & attribute)
+    return bool (self.parent._folder.GetAttributesOf ([self.rpidl], attribute) & attribute)
 
   def filename (self):
     return self.name (shellcon.SHGDN_FORPARSING)
 
   def name (self, type=shellcon.SHGDN_NORMAL):
-    return self.parent._folder.GetDisplayNameOf (self.pidl, type)
+    return self.parent._folder.GetDisplayNameOf (self.rpidl, type)
 
   def stat (self):
-    stream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
+    stream = self.parent._folder.BindToStorage (self.rpidl, None, pythoncom.IID_IStream)
     return make_storage_stat (stream.Stat ())
 
   def getsize (self):
@@ -725,14 +725,14 @@ class ShellItem (WinshellObject):
     except (ValueError, TypeError):
       pid = _pid_from_name (pid)
     folder2 = self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
-    return folder2.GetDetailsEx (self.pidl, (fmtid, pid))
+    return folder2.GetDetailsEx (self.rpidl, (fmtid, pid))
 
 class ShellFolder (ShellItem):
 
-  def __init__ (self, parent, pidl):
-    ShellItem.__init__ (self, parent, pidl)
+  def __init__ (self, parent, rpidl):
+    ShellItem.__init__ (self, parent, rpidl)
     if parent:
-      self._folder = self.parent._folder.BindToObject (self.pidl, None, shell.IID_IShellFolder)
+      self._folder = self.parent._folder.BindToObject (self.rpidl, None, shell.IID_IShellFolder)
     else:
       self._folder = None
 
@@ -754,10 +754,10 @@ class ShellFolder (ShellItem):
     enum = self._folder.EnumObjects (0, flags | shellcon.SHCONTF_NONFOLDERS)
     if enum:
       while True:
-        pidls = enum.Next (1)
-        if pidls:
-          for pidl in pidls:
-            yield self.item_factory (pidl)
+        rpidls = enum.Next (1)
+        if rpidls:
+          for rpidl in rpidls:
+            yield self.item_factory (rpidl)
         else:
           break
 
@@ -776,18 +776,18 @@ class ShellFolder (ShellItem):
       for result in folder.walk (flags):
         yield result
 
-  def folder_factory (self, pidl):
-    return ShellFolder (self, pidl)
+  def folder_factory (self, rpidl):
+    return ShellFolder (self, rpidl)
 
-  def item_factory (self, pidl):
-    return ShellItem (self, pidl)
+  def item_factory (self, rpidl):
+    return ShellItem (self, rpidl)
 
   def get_child (self, name, hWnd=None):
-    n_eaten, pidl, attributes = self._folder.ParseDisplayName (hWnd, None, name, shellcon.SFGAO_FOLDER)
+    n_eaten, rpidl, attributes = self._folder.ParseDisplayName (hWnd, None, name, shellcon.SFGAO_FOLDER)
     if attributes & shellcon.SFGAO_FOLDER:
-      return self.folder_factory (pidl)
+      return self.folder_factory (rpidl)
     else:
-      return self.item_factory (pidl)
+      return self.item_factory (rpidl)
 
 class ShellRecycledItem (ShellItem):
 
@@ -807,7 +807,7 @@ class ShellRecycledItem (ShellItem):
     return datetime_from_pytime (self.detail (shell.FMTID_Displaced, self.PID_DISPLACED_DATE))
 
   def real_filename (self):
-    return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
+    return self.parent._folder.GetDisplayNameOf (self.rpidl, shellcon.SHGDN_FORPARSING)
 
   def undelete (self):
     original_filename = self.original_filename ()
@@ -847,7 +847,7 @@ class ShellRecycledItem (ShellItem):
       delete_file (tempdir, allow_undo=False, no_confirm=True, silent=True)
 
   def contents (self, buffer_size=8192):
-    istream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
+    istream = self.parent._folder.BindToStorage (self.rpidl, None, pythoncom.IID_IStream)
     while True:
       contents = istream.Read (buffer_size)
       if contents:
@@ -875,8 +875,8 @@ class ShellRecycleBin (ShellFolder):
     size, _ = shell.SHQueryRecycleBin (None)
     return size
 
-  def item_factory (self, pidl):
-    return ShellRecycledItem (self, pidl)
+  def item_factory (self, rpidl):
+    return ShellRecycledItem (self, rpidl)
   folder_factory = item_factory
 
   @staticmethod
@@ -921,7 +921,7 @@ class ShellDesktop (ShellFolder):
     self._folder = _desktop_folder
 
   def name (self, type=shellcon.SHGDN_NORMAL):
-    return self._folder.GetDisplayNameOf (self.pidl, type)
+    return self._folder.GetDisplayNameOf (self.rpidl, type)
 
 def shell_object (shell_object=UNSET):
   if shell_object is None:
