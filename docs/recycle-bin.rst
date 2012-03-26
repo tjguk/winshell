@@ -130,3 +130,10 @@ not sure which version you're after. So::
         Implements the undelete functionality used by :func:`undelete`, returning
         any remapping which has occurred because of collision renaming.
 
+References
+----------
+
+..  seealso::
+
+    :doc:`cookbook/recycle-bin`
+      Cookbook examples of using the recycle bin
