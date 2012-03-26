@@ -842,6 +842,14 @@ class ShellRecycleBin (ShellFolder):
       shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
     )
 
+  def __len__ (self):
+    _, n_items = shell.SHQueryRecycleBin (None)
+    return n_items
+
+  def get_size (self):
+    size, _ = shell.SHQueryRecycleBin (None)
+    return size
+
   def item_factory (self, pidl):
     return ShellRecycledItem (self, pidl)
   folder_factory = item_factory
