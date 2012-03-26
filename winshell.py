@@ -27,6 +27,8 @@ from __winshell_version__ import __VERSION__
 
 import os, sys
 import datetime
+import tempfile
+
 import win32con
 from win32com import storagecon
 from win32com.shell import shell, shellcon
@@ -35,7 +37,7 @@ import win32timezone
 import pythoncom
 
 #
-# 2->3 compatibilty workarounds
+# version compaibility workaround
 #
 try:
   basestring
@@ -55,6 +57,9 @@ try:
 except ImportError:
   make_storage_stat = tuple
 
+#
+# Exceptions
+#
 class x_winshell (Exception):
   pass
 
@@ -65,6 +70,13 @@ class x_not_found_in_recycle_bin (x_recycle_bin):
   pass
 
 #
+# Constants & calculated types
+#
+_desktop_folder = shell.SHGetDesktopFolder ()
+PyIShellFolder = type (_desktop_folder)
+undelete_temp = tempfile.mkdtemp ()
+
+#
 # Stolen from winsys
 #
 def wrapped (fn, *args, **kwargs):
@@ -72,9 +84,6 @@ def wrapped (fn, *args, **kwargs):
 
 class Unset (object): pass
 UNSET = Unset ()
-
-_desktop_folder = shell.SHGetDesktopFolder ()
-PyIShellFolder = type (_desktop_folder)
 
 def indented (text, level, indent=2):
   """Take a multiline text and indent it as a block"""
@@ -776,7 +785,41 @@ class ShellRecycledItem (ShellItem):
     return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
 
   def undelete (self):
-    return move_file (self.real_filename (), self.original_filename (), rename_on_collision=True)
+    original_filename = self.original_filename ()
+    tempdir = tempfile.mkdtemp ()
+    try:
+      temp_filepath = os.path.join (tempdir, os.path.basename (original_filename))
+      #
+      # Move the undelete file into a working directory, ensuring that
+      # the original filename is retained, regardless of the temporary
+      # filename used in the Recycle Bin. Then move that file into the
+      # original directory, allowing rename on collision. This ensures
+      # that the final, possiby renamed, filename will be related to
+      # the original name and not to the temporary recycled name.
+      #
+      move_file (
+        self.real_filename (),
+        temp_filepath,
+        allow_undo=False,
+        no_confirm=True,
+        rename_on_collision=True,
+        silent=True
+      )
+      remapping = move_file (
+        temp_filepath,
+        original_filename,
+        allow_undo=False,
+        no_confirm=True,
+        rename_on_collision=True,
+        silent=False
+      )
+      for k, v in remapping.items ():
+        if k.lower () == original_filename.lower ():
+          return v
+      else:
+        return original_filename
+    finally:
+      delete_file (tempdir, allow_undo=False, no_confirm=True, silent=True)
 
   def contents (self, buffer_size=8192):
     istream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
@@ -819,16 +862,11 @@ class ShellRecycleBin (ShellFolder):
     candidates = self.versions (original_filepath)
     if not candidates:
       raise x_not_found_in_recycle_bin ("%s not found in the Recycle Bin" % original_filepath)
+    #
+    # NB Can't use max (key=...) until Python 2.6+
+    #
     newest = sorted (candidates, key=lambda entry: entry.recycle_date ())[-1]
-    ostensible_copy_target = os.path.join (
-      os.path.dirname (original_filepath),
-      os.path.basename (newest.real_filename ())
-    ).lower ()
-    for remapped_from, remapped_to in newest.undelete ().items ():
-      if remapped_from.lower () == ostensible_copy_target:
-        return remapped_to
-    else:
-      return original_filepath
+    return newest.undelete ()
 
   def versions (self, original_filepath):
     original_filepath = original_filepath.lower ()
