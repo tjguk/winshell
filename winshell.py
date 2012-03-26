@@ -27,15 +27,18 @@ from __winshell_version__ import __VERSION__
 
 import os, sys
 import datetime
+import tempfile
+
 import win32con
 from win32com import storagecon
 from win32com.shell import shell, shellcon
 import win32api
 import win32timezone
 import pythoncom
+import pywintypes
 
 #
-# 2->3 compatibilty workarounds
+# version compaibility workaround
 #
 try:
   basestring
@@ -55,6 +58,9 @@ try:
 except ImportError:
   make_storage_stat = tuple
 
+#
+# Exceptions
+#
 class x_winshell (Exception):
   pass
 
@@ -65,6 +71,29 @@ class x_not_found_in_recycle_bin (x_recycle_bin):
   pass
 
 #
+# Constants & calculated types
+#
+_desktop_folder = shell.SHGetDesktopFolder ()
+PyIShellFolder = type (_desktop_folder)
+undelete_temp = tempfile.mkdtemp ()
+
+def fmtids ():
+  prefix = "FMTID_"
+  return set (i[len (prefix):] for i in dir (shell) if i.startswith (prefix))
+
+def _fmtid_from_name (name):
+  name = "".join (w.title () for w in name.split ("_"))
+  return getattr (shell, "FMTID_%s" % name)
+
+def pids ():
+  prefix = "PID_"
+  return set (i[len (prefix):] for i in dir (shellcon) if i.startswith (prefix))
+
+def _pid_from_name (name):
+  name = "_".join (w.title () for w in name.split ("_")).upper ()
+  return getattr (shellcon, "PID_%s" % name)
+
+#
 # Stolen from winsys
 #
 def wrapped (fn, *args, **kwargs):
@@ -72,9 +101,6 @@ def wrapped (fn, *args, **kwargs):
 
 class Unset (object): pass
 UNSET = Unset ()
-
-_desktop_folder = shell.SHGetDesktopFolder ()
-PyIShellFolder = type (_desktop_folder)
 
 def indented (text, level, indent=2):
   """Take a multiline text and indent it as a block"""
@@ -600,14 +626,18 @@ def structured_storage (filename):
 
 class ShellItem (WinshellObject):
 
-  def __init__ (self, parent, pidl):
+  def __init__ (self, parent, rpidl):
     #
     # parent is a PyIShellFolder object (or something similar)
-    # pidl is a PyIDL object (basically: a list of SHITEMs)
+    # rpidl is a PyIDL object (basically: a list of SHITEMs)
     #
     assert parent is None or isinstance (parent, ShellFolder), "parent is %r" % parent
     self.parent = parent
-    self.pidl = pidl
+    self.rpidl = rpidl
+    if parent is None:
+      self.pidl = []
+    else:
+      self.pidl = self.parent.pidl + [rpidl]
 
   @classmethod
   def from_pidl (cls, pidl, parent_obj=None):
@@ -626,11 +656,11 @@ class ShellItem (WinshellObject):
 
   @classmethod
   def from_path (cls, path):
-    _, pidl, flags = _desktop.ParseDisplayName (0, None, path, shellcon.SFGAO_FOLDER)
+    _, rpidl, flags = _desktop.ParseDisplayName (0, None, path, shellcon.SFGAO_FOLDER)
     if flags & shellcon.SFGAO_FOLDER:
-      return ShellFolder.from_pidl (pidl)
+      return ShellFolder.from_pidl (rpidl)
     else:
-      return ShellItem.from_pidl (pidl)
+      return ShellItem.from_pidl (rpidl)
 
   def as_string (self):
     return self.name ()
@@ -645,7 +675,7 @@ class ShellItem (WinshellObject):
   def attributes (self):
     prefix = "SFGAO_"
     results = set ()
-    all_attributes = self.parent._folder.GetAttributesOf ([self.pidl], -1)
+    all_attributes = self.parent._folder.GetAttributesOf ([self.rpidl], -1)
     for attr in dir (shellcon):
       if attr.startswith (prefix):
         if all_attributes & getattr (shellcon, attr):
@@ -665,16 +695,16 @@ class ShellItem (WinshellObject):
         except TypeError:
           attribute = attribute | getattr (shellcon, "SFGAO_" + a.upper ())
 
-    return bool (self.parent._folder.GetAttributesOf ([self.pidl], attribute) & attribute)
+    return bool (self.parent._folder.GetAttributesOf ([self.rpidl], attribute) & attribute)
 
   def filename (self):
     return self.name (shellcon.SHGDN_FORPARSING)
 
   def name (self, type=shellcon.SHGDN_NORMAL):
-    return self.parent._folder.GetDisplayNameOf (self.pidl, type)
+    return self.parent._folder.GetDisplayNameOf (self.rpidl, type)
 
   def stat (self):
-    stream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
+    stream = self.parent._folder.BindToStorage (self.rpidl, None, pythoncom.IID_IStream)
     return make_storage_stat (stream.Stat ())
 
   def getsize (self):
@@ -690,15 +720,23 @@ class ShellItem (WinshellObject):
     return self.stat ()[5]
 
   def detail (self, fmtid, pid):
+    try:
+      fmtid = pywintypes.IID (fmtid)
+    except pywintypes.com_error:
+      fmtid = _fmtid_from_name (fmtid)
+    try:
+      pid = int (pid)
+    except (ValueError, TypeError):
+      pid = _pid_from_name (pid)
     folder2 = self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
-    return folder2.GetDetailsEx (self.pidl, (fmtid, pid))
+    return folder2.GetDetailsEx (self.rpidl, (fmtid, pid))
 
 class ShellFolder (ShellItem):
 
-  def __init__ (self, parent, pidl):
-    ShellItem.__init__ (self, parent, pidl)
+  def __init__ (self, parent, rpidl):
+    ShellItem.__init__ (self, parent, rpidl)
     if parent:
-      self._folder = self.parent._folder.BindToObject (self.pidl, None, shell.IID_IShellFolder)
+      self._folder = self.parent._folder.BindToObject (self.rpidl, None, shell.IID_IShellFolder)
     else:
       self._folder = None
 
@@ -720,10 +758,10 @@ class ShellFolder (ShellItem):
     enum = self._folder.EnumObjects (0, flags | shellcon.SHCONTF_NONFOLDERS)
     if enum:
       while True:
-        pidls = enum.Next (1)
-        if pidls:
-          for pidl in pidls:
-            yield self.item_factory (pidl)
+        rpidls = enum.Next (1)
+        if rpidls:
+          for rpidl in rpidls:
+            yield self.item_factory (rpidl)
         else:
           break
 
@@ -742,18 +780,18 @@ class ShellFolder (ShellItem):
       for result in folder.walk (flags):
         yield result
 
-  def folder_factory (self, pidl):
-    return ShellFolder (self, pidl)
+  def folder_factory (self, rpidl):
+    return ShellFolder (self, rpidl)
 
-  def item_factory (self, pidl):
-    return ShellItem (self, pidl)
+  def item_factory (self, rpidl):
+    return ShellItem (self, rpidl)
 
   def get_child (self, name, hWnd=None):
-    n_eaten, pidl, attributes = self._folder.ParseDisplayName (hWnd, None, name, shellcon.SFGAO_FOLDER)
+    n_eaten, rpidl, attributes = self._folder.ParseDisplayName (hWnd, None, name, shellcon.SFGAO_FOLDER)
     if attributes & shellcon.SFGAO_FOLDER:
-      return self.folder_factory (pidl)
+      return self.folder_factory (rpidl)
     else:
-      return self.item_factory (pidl)
+      return self.item_factory (rpidl)
 
 class ShellRecycledItem (ShellItem):
 
@@ -773,13 +811,47 @@ class ShellRecycledItem (ShellItem):
     return datetime_from_pytime (self.detail (shell.FMTID_Displaced, self.PID_DISPLACED_DATE))
 
   def real_filename (self):
-    return self.parent._folder.GetDisplayNameOf (self.pidl, shellcon.SHGDN_FORPARSING)
+    return self.parent._folder.GetDisplayNameOf (self.rpidl, shellcon.SHGDN_FORPARSING)
 
   def undelete (self):
-    return move_file (self.real_filename (), self.original_filename (), rename_on_collision=True)
+    original_filename = self.original_filename ()
+    tempdir = tempfile.mkdtemp ()
+    try:
+      temp_filepath = os.path.join (tempdir, os.path.basename (original_filename))
+      #
+      # Move the undelete file into a working directory, ensuring that
+      # the original filename is retained, regardless of the temporary
+      # filename used in the Recycle Bin. Then move that file into the
+      # original directory, allowing rename on collision. This ensures
+      # that the final, possiby renamed, filename will be related to
+      # the original name and not to the temporary recycled name.
+      #
+      move_file (
+        self.real_filename (),
+        temp_filepath,
+        allow_undo=False,
+        no_confirm=True,
+        rename_on_collision=True,
+        silent=True
+      )
+      remapping = move_file (
+        temp_filepath,
+        original_filename,
+        allow_undo=False,
+        no_confirm=True,
+        rename_on_collision=True,
+        silent=False
+      )
+      for k, v in remapping.items ():
+        if k.lower () == original_filename.lower ():
+          return v
+      else:
+        return original_filename
+    finally:
+      delete_file (tempdir, allow_undo=False, no_confirm=True, silent=True)
 
   def contents (self, buffer_size=8192):
-    istream = self.parent._folder.BindToStorage (self.pidl, None, pythoncom.IID_IStream)
+    istream = self.parent._folder.BindToStorage (self.rpidl, None, pythoncom.IID_IStream)
     while True:
       contents = istream.Read (buffer_size)
       if contents:
@@ -799,8 +871,16 @@ class ShellRecycleBin (ShellFolder):
       shell.SHGetSpecialFolderLocation (0, shellcon.CSIDL_BITBUCKET)
     )
 
-  def item_factory (self, pidl):
-    return ShellRecycledItem (self, pidl)
+  def __len__ (self):
+    _, n_items = shell.SHQueryRecycleBin (None)
+    return n_items
+
+  def get_size (self):
+    size, _ = shell.SHQueryRecycleBin (None)
+    return size
+
+  def item_factory (self, rpidl):
+    return ShellRecycledItem (self, rpidl)
   folder_factory = item_factory
 
   @staticmethod
@@ -819,16 +899,11 @@ class ShellRecycleBin (ShellFolder):
     candidates = self.versions (original_filepath)
     if not candidates:
       raise x_not_found_in_recycle_bin ("%s not found in the Recycle Bin" % original_filepath)
+    #
+    # NB Can't use max (key=...) until Python 2.6+
+    #
     newest = sorted (candidates, key=lambda entry: entry.recycle_date ())[-1]
-    ostensible_copy_target = os.path.join (
-      os.path.dirname (original_filepath),
-      os.path.basename (newest.real_filename ())
-    ).lower ()
-    for remapped_from, remapped_to in newest.undelete ().items ():
-      if remapped_from.lower () == ostensible_copy_target:
-        return remapped_to
-    else:
-      return original_filepath
+    return newest.undelete ()
 
   def versions (self, original_filepath):
     original_filepath = original_filepath.lower ()
@@ -850,7 +925,7 @@ class ShellDesktop (ShellFolder):
     self._folder = _desktop_folder
 
   def name (self, type=shellcon.SHGDN_NORMAL):
-    return self._folder.GetDisplayNameOf (self.pidl, type)
+    return self._folder.GetDisplayNameOf (self.rpidl, type)
 
 def shell_object (shell_object=UNSET):
   if shell_object is None:

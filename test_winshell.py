@@ -485,7 +485,8 @@ if go_slow:
         versions_info.add ((b("").join (version.contents ()), version.getsize ()))
       self.assertEqual (self.deleted_files, versions_info)
 
-    def test_restore_newest (self):
+    def test_undelete (self):
+      self.assertFalse (os.path.exists (self.tempfile))
       recycle_bin = winshell.recycle_bin ()
       newest = sorted (recycle_bin.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
       newest_contents = b("").join (newest.contents ())
@@ -493,6 +494,19 @@ if go_slow:
       self.assertTrue (os.path.exists (self.tempfile))
       self.assertEquals (open (self.tempfile, "rb").read (), newest_contents)
 
+    def test_undelete_with_rename (self):
+      self.assertFalse (os.path.exists (self.tempfile))
+      recycle_bin = winshell.recycle_bin ()
+
+      recycle_bin.undelete (self.tempfile)
+      self.assertTrue (os.path.exists (self.tempfile))
+
+      newest = sorted (recycle_bin.versions (self.tempfile), key=lambda item: item.recycle_date ())[-1]
+      newest_contents = b("").join (newest.contents ())
+      renamed_to = recycle_bin.undelete (self.tempfile)
+      self.assertNotEqual (renamed_to, self.tempfile)
+      self.assertTrue (os.path.exists (renamed_to))
+      self.assertEquals (open (renamed_to, "rb").read (), newest_contents)
 
 if __name__ == '__main__':
   unittest.main ()
