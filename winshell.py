@@ -35,6 +35,7 @@ from win32com.shell import shell, shellcon
 import win32api
 import win32timezone
 import pythoncom
+import pywintypes
 
 #
 # version compaibility workaround
@@ -75,6 +76,22 @@ class x_not_found_in_recycle_bin (x_recycle_bin):
 _desktop_folder = shell.SHGetDesktopFolder ()
 PyIShellFolder = type (_desktop_folder)
 undelete_temp = tempfile.mkdtemp ()
+
+def fmtids ():
+  prefix = "FMTID_"
+  return set (i[len (prefix):] for i in dir (shell) if i.startswith (prefix))
+
+def _fmtid_from_name (name):
+  name = "".join (w.title () for w in name.split ("_"))
+  return getattr (shell, "FMTID_%s" % name)
+
+def pids ():
+  prefix = "PID_"
+  return set (i[len (prefix):] for i in dir (shellcon) if i.startswith (prefix))
+
+def _pid_from_name (name):
+  name = "_".join (w.title () for w in name.split ("_")).upper ()
+  return getattr (shellcon, "PID_%s" % name)
 
 #
 # Stolen from winsys
@@ -699,6 +716,14 @@ class ShellItem (WinshellObject):
     return self.stat ()[5]
 
   def detail (self, fmtid, pid):
+    try:
+      fmtid = pywintypes.IID (fmtid)
+    except pywintypes.com_error:
+      fmtid = _fmtid_from_name (fmtid)
+    try:
+      pid = int (pid)
+    except (ValueError, TypeError):
+      pid = _pid_from_name (pid)
     folder2 = self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
     return folder2.GetDetailsEx (self.pidl, (fmtid, pid))
 
