@@ -634,6 +634,10 @@ class ShellItem (WinshellObject):
     assert parent is None or isinstance (parent, ShellFolder), "parent is %r" % parent
     self.parent = parent
     self.rpidl = rpidl
+    if parent is None:
+      self.pidl = []
+    else:
+      self.pidl = self.parent.pidl + [rpidl]
 
   @classmethod
   def from_pidl (cls, pidl, parent_obj=None):
