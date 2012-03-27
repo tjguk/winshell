@@ -85,13 +85,48 @@ def _fmtid_from_name (name):
   name = "".join (w.title () for w in name.split ("_"))
   return getattr (shell, "FMTID_%s" % name)
 
+EXTRA_PIDS = dict (
+  STG_NAME = 10,
+  STG_STORAGETYPE = 4,
+  STG_SIZE = 12,
+  STG_WRITETIME = 14,
+  STG_ATTRIBUTES = 13,
+  SUMMARY_TITLE=2,
+  SUMMARY_SUBJECT=3,
+  SUMMARY_AUTHOR=4,
+  SUMMARY_KEYWORDS=5,
+  SUMMARY_COMMENTS=6,
+  SUMMARY_TEMPLATE=7,
+  SUMMARY_LAST_SAVED_BY=8,
+  SUMMARY_REVISION_NUMBER=9,
+  SUMMARY_TOTAL_EDITING_TIME=10,
+  SUMMARY_LAST_PRINTED=11,
+  SUMMARY_CREATE_TIME=12,
+  SUMMARY_LAST_SAVED_TIME=13,
+  SUMMARY_NUMBER_OF_PAGES=14,
+  SUMMARY_NUMBER_OF_WORDS=15,
+  SUMMARY_NUMBER_OF_CHARACTERS=16,
+  SUMMARY_THUMBNAIL=17,
+  SUMMARY_APPLICATION=18,
+  SUMMARY_SECURITY=19
+)
 def pids ():
   prefix = "PID_"
   return set (i[len (prefix):] for i in dir (shellcon) if i.startswith (prefix))
 
 def _pid_from_name (name):
   name = "_".join (w.title () for w in name.split ("_")).upper ()
-  return getattr (shellcon, "PID_%s" % name)
+  return getattr (shellcon, "PID_%s" % name, EXTRA_PIDS.get (name))
+
+DETAILS = {
+  "storage" : ["stg_name", "stg_storagetype", "stg_size", "stg_writetime", "stg_attributes"],
+  "shell_details" : ["descriptionid", "finddata", "netresource"],
+  "displaced" : ["displaced_from", "displaced_date"],
+  "misc" : ["misc_owner", "misc_status"],
+  "query" : ["query_rank"],
+  "volume" : ["volume_free"],
+  "summary_information" : [i.lower () for i in EXTRA_PIDS if i.startswith ("SUMMMARY_")]
+}
 
 #
 # Stolen from winsys
@@ -718,6 +753,9 @@ class ShellItem (WinshellObject):
 
   def getatime (self):
     return self.stat ()[5]
+
+  def details (self, fmtid_name):
+    return dict ((pid_name, self.detail (fmtid_name, pid_name)) for pid_name in DETAILS[fmtid_name])
 
   def detail (self, fmtid, pid):
     try:
