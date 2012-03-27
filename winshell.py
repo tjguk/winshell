@@ -742,18 +742,6 @@ class ShellItem (WinshellObject):
     stream = self.parent._folder.BindToStorage (self.rpidl, None, pythoncom.IID_IStream)
     return make_storage_stat (stream.Stat ())
 
-  def getsize (self):
-    return self.stat ()[2]
-
-  def getmtime (self):
-    return datetime_from_pytime (self.stat ()[3])
-
-  def getctime (self):
-    return self.stat ()[4]
-
-  def getatime (self):
-    return self.stat ()[5]
-
   def details (self, fmtid_name):
     return dict ((pid_name, self.detail (fmtid_name, pid_name)) for pid_name in DETAILS[fmtid_name])
 
