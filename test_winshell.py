@@ -207,6 +207,13 @@ class TestFileOperations (test_base.TestCase):
 
     self.assertTrue (self.files_are_equal (from_filepath, copy_of_filepath))
 
+  def test_copy_multifiles (self):
+    from_filepath1, to_filepath1 = self.tempfiles (create_from=True, create_to=False)
+    from_filepath2, to_filepath2 = self.tempfiles (create_from=True, create_to=False)
+    winshell.copy_file ([from_filepath1, from_filepath2], [to_filepath1, to_filepath2])
+    for from_filepath, to_filepath in zip ([from_filepath1, from_filepath2], [to_filepath1, to_filepath2]):
+      self.files_are_equal (from_filepath, to_filepath)
+
   def test_simple_move (self):
     from_filepath, to_filepath = self.tempfiles (create_from=True, create_to=False)
     f = open (from_filepath, "rb")
@@ -430,7 +437,7 @@ class TestRecycler (test_base.TestCase):
   #
   def test_factory_function (self):
     recycle_bin = winshell.recycle_bin ()
-    self.assertIsInstance (recycle_bin, winshell.recycle_bin)
+    self.assertIsInstance (recycle_bin, winshell.ShellRecycleBin)
 
   def test_empty (self):
     recycle_bin = winshell.recycle_bin ()
@@ -447,7 +454,7 @@ class TestRecycler (test_base.TestCase):
     self.assertEqualCI (item.original_filename (), self.tempfile)
 
 if go_slow:
-  class TestRecycler (test_base.TestCase):
+  class TestRecyclerSlow (test_base.TestCase):
 
     #
     # Fixtures
