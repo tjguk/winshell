@@ -276,8 +276,10 @@ def _file_operation (
   no_confirm=False,
   rename_on_collision=True,
   silent=False,
+  extra_flags=0,
   hWnd=None
 ):
+  flags = extra_flags
   #
   # At present the Python wrapper around SHFileOperation doesn't
   # allow lists of files. Hopefully it will at some point, so
@@ -290,19 +292,21 @@ def _file_operation (
   if isinstance (source_path, basestring):
     source_path = os.path.abspath (source_path)
   else:
-    source_path = [os.path.abspath (i) for i in source_path]
+    source_path = "\0".join (os.path.abspath (i) for i in source_path)
 
   target_path = target_path or ""
   if isinstance (target_path, basestring):
     target_path = os.path.abspath (target_path)
   else:
-    target_path = [os.path.abspath (i) for i in target_path]
+    target_path = "\0".join (os.path.abspath (i) for i in target_path)
+    flags |= shellcon.FOF_MULTIDESTFILES
 
-  flags = shellcon.FOF_WANTMAPPINGHANDLE
+  flags |= shellcon.FOF_WANTMAPPINGHANDLE
   if allow_undo: flags |= shellcon.FOF_ALLOWUNDO
   if no_confirm: flags |= shellcon.FOF_NOCONFIRMATION
   if rename_on_collision: flags |= shellcon.FOF_RENAMEONCOLLISION
   if silent: flags |= shellcon.FOF_SILENT
+  flags |= extra_flags
 
   result, n_aborted, mapping = shell.SHFileOperation (
     (hWnd or 0, operation, source_path, target_path, flags, None, None)
@@ -321,6 +325,7 @@ def copy_file (
   no_confirm=False,
   rename_on_collision=True,
   silent=False,
+  extra_flags=0,
   hWnd=None
 ):
   """Perform a shell-based file copy. Copying in
@@ -339,6 +344,7 @@ def copy_file (
     no_confirm,
     rename_on_collision,
     silent,
+    extra_flags,
     hWnd
   )
 
@@ -349,6 +355,7 @@ def move_file (
   no_confirm=False,
   rename_on_collision=True,
   silent=False,
+  extra_flags=0,
   hWnd=None
 ):
   """Perform a shell-based file move. Moving in
@@ -367,6 +374,7 @@ def move_file (
     no_confirm,
     rename_on_collision,
     silent,
+    extra_flags,
     hWnd
   )
 
@@ -377,6 +385,7 @@ def rename_file (
   no_confirm=False,
   rename_on_collision=True,
   silent=False,
+  extra_flags=0,
   hWnd=None
 ):
   """Perform a shell-based file rename. Renaming in
@@ -395,6 +404,7 @@ def rename_file (
     no_confirm,
     rename_on_collision,
     silent,
+    extra_flags,
     hWnd
   )
 
@@ -403,6 +413,7 @@ def delete_file (
   allow_undo=True,
   no_confirm=False,
   silent=False,
+  extra_flags=0,
   hWnd=None
 ):
   """Perform a shell-based file delete. Deleting in
@@ -421,6 +432,7 @@ def delete_file (
     no_confirm,
     False,
     silent,
+    extra_flags,
     hWnd
   )
 

@@ -482,7 +482,7 @@ if go_slow:
       versions = recycle_bin.versions (self.tempfile)
       versions_info = set ()
       for version in versions:
-        versions_info.add ((b("").join (version.contents ()), version.getsize ()))
+        versions_info.add ((b("").join (version.contents ()), version.stat ()[2]))
       self.assertEqual (self.deleted_files, versions_info)
 
     def test_undelete (self):
