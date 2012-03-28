@@ -85,6 +85,14 @@ def _fmtid_from_name (name):
   name = "".join (w.title () for w in name.split ("_"))
   return getattr (shell, "FMTID_%s" % name)
 
+_FMTID_PIDS = {}
+_PID_FMTID = {}
+def register_by_name (fmtid_name, pid_name):
+  _FMTID_PIDS.setdefault (fmtid_name.lower (), set ()).add (pid_name)
+
+
+register_by_name ()
+
 EXTRA_PIDS = dict (
   STG_NAME = 10,
   STG_STORAGETYPE = 4,
@@ -703,17 +711,20 @@ class ShellItem (WinshellObject):
 
   @classmethod
   def from_path (cls, path):
-    _, rpidl, flags = _desktop.ParseDisplayName (0, None, path, shellcon.SFGAO_FOLDER)
+    _, pidl, flags = _desktop.ParseDisplayName (0, None, path, shellcon.SFGAO_FOLDER)
     if flags & shellcon.SFGAO_FOLDER:
-      return ShellFolder.from_pidl (rpidl)
+      return ShellFolder.from_pidl (pidl)
     else:
-      return ShellItem.from_pidl (rpidl)
+      return ShellItem.from_pidl (pidl)
+
+  def _ifolder2 (self):
+    return self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
 
   def _ifolder2 (self):
     return self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
 
   def as_string (self):
-    return self.name ()
+    return self.filename ()
 
   def dumped (self, level=0):
     output = []

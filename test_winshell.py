@@ -417,7 +417,7 @@ class TestRecycler (test_base.TestCase):
     os.close (handle)
 
     self.deleted_files = set ()
-    f = open (self.tempfile, "w")
+    f = open (self.tempfile, "wb")
     try:
       timestamp = b("*")
       f.write (timestamp)
