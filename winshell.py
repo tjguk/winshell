@@ -709,6 +709,9 @@ class ShellItem (WinshellObject):
     else:
       return ShellItem.from_pidl (rpidl)
 
+  def _ifolder2 (self):
+    return self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
+
   def as_string (self):
     return self.name ()
 
@@ -766,7 +769,11 @@ class ShellItem (WinshellObject):
       pid = int (pid)
     except (ValueError, TypeError):
       pid = _pid_from_name (pid)
-    folder2 = self.parent._folder.QueryInterface (shell.IID_IShellFolder2)
+    if self.parent:
+      folder = self.parent._folder
+    else:
+      folder = self._folder
+    folder2 = folder.QueryInterface (shell.IID_IShellFolder2)
     return folder2.GetDetailsEx (self.rpidl, (fmtid, pid))
 
 class ShellFolder (ShellItem):
