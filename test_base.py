@@ -11,3 +11,5 @@ class TestCase (unittest.TestCase):
 
   def assertIsInstance (self, item, klass, *args, **kwargs):
     self.assertTrue (isinstance (item, klass), *args, **kwargs)
+
+###
