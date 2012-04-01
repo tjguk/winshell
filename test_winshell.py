@@ -390,7 +390,7 @@ class TestShortcuts(test_base.TestCase):
         # Can't really do much for dump[ed] so just make sure they don't
         # crash & burn
         #
-        self.assertTrue(winshell.shortcut().dumped().startswith("{\n    -unsaved-"))
+        self.assertTrue(winshell.shortcut().dumped().startswith("{\n  -unsaved-"))
 
     def test_dump(self):
         #
@@ -402,7 +402,7 @@ class TestShortcuts(test_base.TestCase):
         try:
             winshell.shortcut().dump()
             sys.stdout.seek(0)
-            self.assertTrue(sys.stdout.read().startswith("{\n    -unsaved-"))
+            self.assertTrue(sys.stdout.read().startswith("{\n  -unsaved-"))
         finally:
             sys.stdout = _stdout
 
