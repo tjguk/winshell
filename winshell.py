@@ -312,10 +312,14 @@ def _file_operation(
         flags |= shellcon.FOF_MULTIDESTFILES
 
     flags |= shellcon.FOF_WANTMAPPINGHANDLE
-    if allow_undo: flags |= shellcon.FOF_ALLOWUNDO
-    if no_confirm: flags |= shellcon.FOF_NOCONFIRMATION
-    if rename_on_collision: flags |= shellcon.FOF_RENAMEONCOLLISION
-    if silent: flags |= shellcon.FOF_SILENT
+    if allow_undo:
+        flags |= shellcon.FOF_ALLOWUNDO
+    if no_confirm:
+        flags |= shellcon.FOF_NOCONFIRMATION
+    if rename_on_collision:
+        flags |= shellcon.FOF_RENAMEONCOLLISION
+    if silent:
+        flags |= shellcon.FOF_SILENT
     flags |= extra_flags
 
     result, n_aborted, mapping = shell.SHFileOperation(
@@ -509,34 +513,43 @@ class Shortcut(WinshellObject):
 
     def _get_arguments(self):
         return self._shell_link.GetArguments()
+
     def _set_arguments(self, arguments):
         self._shell_link.SetArguments(arguments)
     arguments = property(_get_arguments, _set_arguments)
 
     def _get_description(self):
         return self._shell_link.GetDescription()
+
     def _set_description(self, description):
         self._shell_link.SetDescription(description)
+
     description = property(_get_description, _set_description)
 
     def _get_hotkey(self):
         return self._shell_link.GetHotkey()
+
     def _set_hotkey(self, hotkey):
         self._shell_link.SetHotkey(hotkey)
+
     hotkey = property(_get_hotkey, _set_hotkey)
 
     def _get_icon_location(self):
         path, index = self._shell_link.GetIconLocation()
         return path, index
+
     def _set_icon_location(self, icon_location):
         self._shell_link.SetIconLocation(*icon_location)
+
     icon_location = property(_get_icon_location, _set_icon_location)
 
     def _get_path(self):
         lnk_filepath, data = self._shell_link.GetPath(shell.SLGP_UNCPRIORITY)
         return lnk_filepath
+
     def _set_path(self, path):
         self._shell_link.SetPath(path)
+
     path = property(_get_path, _set_path)
 
     def _get_show_cmd(self):
@@ -546,18 +559,22 @@ class Shortcut(WinshellObject):
                 return k
         else:
             return None
+
     def _set_show_cmd(self, show_cmd):
         try:
             show_cmd = int(show_cmd)
         except ValueError:
             show_cmd = self.show_states[show_cmd]
         self._shell_link.SetShowCmd(show_cmd)
+
     show_cmd = property(_get_show_cmd, _set_show_cmd)
 
     def _get_working_directory(self):
         return self._shell_link.GetWorkingDirectory()
+
     def _set_working_directory(self, working_directory):
         self._shell_link.SetWorkingDirectory(working_directory)
+
     working_directory = property(_get_working_directory, _set_working_directory)
 
     def write(self, lnk_filepath=None):
@@ -664,21 +681,36 @@ def structured_storage(filename):
      application = data
 
     result = {}
-    if title: result['title'] = title
-    if subject: result['subject'] = subject
-    if author: result['author'] = author
-    if created_on: result['created_on'] = created_on
-    if keywords: result['keywords'] = keywords
-    if comments: result['comments'] = comments
-    if template_used: result['template_used'] = template_used
-    if updated_by: result['updated_by'] = updated_by
-    if edited_on: result['edited_on'] = edited_on
-    if printed_on: result['printed_on'] = printed_on
-    if saved_on: result['saved_on'] = saved_on
-    if n_pages: result['n_pages'] = n_pages
-    if n_words: result['n_words'] = n_words
-    if n_characters: result['n_characters'] = n_characters
-    if application: result['application'] = application
+    if title:
+        result['title'] = title
+    if subject:
+        result['subject'] = subject
+    if author:
+        result['author'] = author
+    if created_on:
+        result['created_on'] = created_on
+    if keywords:
+        result['keywords'] = keywords
+    if comments:
+        result['comments'] = comments
+    if template_used:
+        result['template_used'] = template_used
+    if updated_by:
+        result['updated_by'] = updated_by
+    if edited_on:
+        result['edited_on'] = edited_on
+    if printed_on:
+        result['printed_on'] = printed_on
+    if saved_on:
+        result['saved_on'] = saved_on
+    if n_pages:
+        result['n_pages'] = n_pages
+    if n_words:
+        result['n_words'] = n_words
+    if n_characters:
+        result['n_characters'] = n_characters
+    if application:
+        result['application'] = application
     return result
 
 class ShellItem(WinshellObject):
@@ -944,9 +976,12 @@ class ShellRecycleBin(ShellFolder):
     @staticmethod
     def empty(confirm=True, show_progress=True, sound=True):
         flags = 0
-        if not confirm: flags |= shellcon.SHERB_NOCONFIRMATION
-        if not show_progress: flags |= shellcon.SHERB_NOPROGRESSUI
-        if not sound: flags |= shellcon.SHERB_NOSOUND
+        if not confirm:
+            flags |= shellcon.SHERB_NOCONFIRMATION
+        if not show_progress:
+            flags |= shellcon.SHERB_NOPROGRESSUI
+        if not sound:
+            flags |= shellcon.SHERB_NOSOUND
         shell.SHEmptyRecycleBin(None, None, flags)
 
     def undelete(self, original_filepath):

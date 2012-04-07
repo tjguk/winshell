@@ -28,9 +28,11 @@ if sys.version_info >= (2, 5):
 try:
     unicode
 except NameError:
-    def b(s): return bytes(s, encoding="ascii")
+    def b(s):
+        return bytes(s, encoding="ascii")
 else:
-    def b(s): return str(s)
+    def b(s):
+        return str(s)
 
 ini = ConfigParser.ConfigParser()
 ini.read("testing_config.ini")

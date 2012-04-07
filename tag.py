@@ -11,12 +11,12 @@ __RELEASE__ = ""
 """
 
 
-def git (command):
+def git(command):
     if isinstance(command, basestring):
         command = [command]
     return subprocess.check_output(["git.cmd"] + command)
 
-def main (tag):
+def main(tag):
     #
     # Add stuff to changelog
     #
