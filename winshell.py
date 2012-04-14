@@ -77,23 +77,9 @@ _desktop_folder = shell.SHGetDesktopFolder ()
 PyIShellFolder = type (_desktop_folder)
 undelete_temp = tempfile.mkdtemp ()
 
-def fmtids ():
-  prefix = "FMTID_"
-  return set (i[len (prefix):] for i in dir (shell) if i.startswith (prefix))
-
-def _fmtid_from_name (name):
-  name = "".join (w.title () for w in name.split ("_"))
-  return getattr (shell, "FMTID_%s" % name)
-
-_FMTID_PIDS = {}
-_PID_FMTID = {}
-def register_by_name (fmtid_name, pid_name):
-  _FMTID_PIDS.setdefault (fmtid_name.lower (), set ()).add (pid_name)
-
-
-register_by_name ()
-
-EXTRA_PIDS = dict (
+_fmtids = dict ((k[len ("FMTID_"):], getattr (shell, k)) for k in dir (shell) if k.startswith ("FMTID_"))
+_pids = dict ((k[len ("PID_"):], getattr (shellcon, k)) for k in dir (shellcon) if k.startswith ("PID_"))
+_pids.update (dict (
   STG_NAME = 10,
   STG_STORAGETYPE = 4,
   STG_SIZE = 12,
@@ -117,24 +103,43 @@ EXTRA_PIDS = dict (
   SUMMARY_THUMBNAIL=17,
   SUMMARY_APPLICATION=18,
   SUMMARY_SECURITY=19
-)
-def pids ():
-  prefix = "PID_"
-  return set (i[len (prefix):] for i in dir (shellcon) if i.startswith (prefix))
+))
 
-def _pid_from_name (name):
-  name = "_".join (w.title () for w in name.split ("_")).upper ()
-  return getattr (shellcon, "PID_%s" % name, EXTRA_PIDS.get (name))
+_FMTID_PIDS = {}
+_PID_FMTID = {}
+def register_by_name (fmtid_name, pid_name):
+  _FMTID_PIDS.setdefault (fmtid_name, set ()).add (pid_name)
+  _PID_FMTID[pid_name] = fmtid_name
 
 DETAILS = {
-  "storage" : ["stg_name", "stg_storagetype", "stg_size", "stg_writetime", "stg_attributes"],
-  "shell_details" : ["descriptionid", "finddata", "netresource"],
-  "displaced" : ["displaced_from", "displaced_date"],
-  "misc" : ["misc_owner", "misc_status"],
-  "query" : ["query_rank"],
-  "volume" : ["volume_free"],
-  "summary_information" : [i.lower () for i in EXTRA_PIDS if i.startswith ("SUMMMARY_")]
+  "Storage" : ["STG_NAME", "STG_STORAGETYPE", "STG_SIZE", "STG_WRITETIME", "STG_ATTRIBUTES"],
+  "ShellDetails" : ["DESCRIPTIONID", "FINDDATA", "NETRESOURCE"],
+  "Displaced" : ["DISPLACED_FROM", "DISPLACED_DATE"],
+  "Misc" : ["MISC_OWNER", "MISC_STATUS"],
+  "Query" : ["QUERY_RANK"],
+  "Volume" : ["VOLUME_FREE"],
+  "SummaryInformation" : [i for i in _pids if i.startswith ("SUMMARY_")]
 }
+for fmtid_name, pid_names in DETAILS.items ():
+  for pid_name in pid_names:
+    print "registering: %s & %s" % (fmtid_name, pid_name)
+    register_by_name (fmtid_name, pid_name)
+
+"""
+SAMPLE CODE
+
+def __detail (pid_name):
+  pid = _pids[pid_name]
+  fmtid = _fmtids[_PID_FMTID[pid_name)]
+
+def __dump_details ():
+  for fmtid_name, fmtid in sorted (_fmids.items ()):
+    print fmtid_name
+    for pid_name, pid in _FMTID_PIDS[pid_name]:
+      value = object.GetDetailsEx (fmtid, pid)
+      if value:
+        print "  ", pid_name, "=>", value
+"""
 
 #
 # Stolen from winsys
@@ -775,11 +780,11 @@ class ShellItem (WinshellObject):
     try:
       fmtid = pywintypes.IID (fmtid)
     except pywintypes.com_error:
-      fmtid = _fmtid_from_name (fmtid)
+      fmtid = _fmtids[fmtid]
     try:
       pid = int (pid)
     except (ValueError, TypeError):
-      pid = _pid_from_name (pid)
+      pid = _pids[pid]
     if self.parent:
       folder = self.parent._folder
     else:
