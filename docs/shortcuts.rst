@@ -41,8 +41,8 @@ corresponding attributes will be populated inside the shortcut object.
         import os, sys
         import winshell
 
-        link_filepath = os.path.join (winshell.desktop (), "python.lnk")
-        with winshell.shortcut (link_filepath) as link:
+        link_filepath = os.path.join(winshell.desktop(), "python.lnk")
+        with winshell.shortcut(link_filepath) as link:
           link.path = sys.executable
           link.description = "Shortcut to python"
           link.arguments = "-m winshell"
@@ -122,8 +122,8 @@ For backwards compatibility, the following function is exposed:
 
     eg::
 
-      winshell.CreateShortcut (
-        Path=os.path.join (desktop (), "PythonI.lnk"),
+      winshell.CreateShortcut(
+        Path=os.path.join(desktop(), "PythonI.lnk"),
         Target=r"c:\python\python.exe",
         Icon=(r"c:\python\python.exe", 0),
         Description="Python Interpreter"
@@ -132,8 +132,8 @@ For backwards compatibility, the following function is exposed:
 but new code should use the :func:`shortcut` factory function and a with-block
 to update or create a shortcut::
 
-  desktop = winshell.desktop ()
-  with winshell.shortcut (os.path.join (desktop, "PythonI.lnk")) as shortcut:
+  desktop = winshell.desktop()
+  with winshell.shortcut(os.path.join(desktop, "PythonI.lnk")) as shortcut:
     shortcut.path = sys.executable
     shortcut.icon = sys.executable, 0
     shortcut.description = "Python Interpreter"

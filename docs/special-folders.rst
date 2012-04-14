@@ -22,7 +22,7 @@ folder.
 Specific Functions
 ------------------
 
-.. py:function:: desktop(common=True)
+.. py:function:: desktop (common=True)
 
    Return the desktop folder
 
@@ -65,12 +65,12 @@ the root of your profile::
   import os, sys
   import glob
   import winshell
-  profile = winshell.folder ("profile")
-  new_folder = os.path.join (profile, "TESTING")
-  os.mkdir (new_folder)
-  for f in glob.glob (os.path.join (winshell.desktop (), "*.lnk")):
-    print ("Copying %s to %s" % (f, new_folder))
-    winshell.copy_file (f, new_folder)
+  profile = winshell.folder("profile")
+  new_folder = os.path.join(profile, "TESTING")
+  os.mkdir(new_folder)
+  for f in glob.glob(os.path.join(winshell.desktop(), "*.lnk")):
+    print("Copying %s to %s" % (f, new_folder))
+    winshell.copy_file(f, new_folder)
 
 NB We're not doing anything fancy with the shell & shortcuts in this
 example, simply assuming that shortcuts are files with an ".lnk" extension.

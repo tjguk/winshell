@@ -29,36 +29,36 @@ not sure which version you're after. So::
   import os, sys
   import winshell
 
-  filepath = os.path.abspath ("test.txt")
+  filepath = os.path.abspath("test.txt")
   #
   # You create a file and delete it
   #
-  with open (filepath, "w") as f:
-    f.write ("test1")
-  winshell.delete_file (filepath)
+  with open(filepath, "w") as f:
+    f.write("test1")
+  winshell.delete_file(filepath)
 
   #
   # Then you create a newer version and delete that
   #
-  with open (filepath, "w") as f:
-    f.write ("test2")
-  winshell.delete_file (filepath)
+  with open(filepath, "w") as f:
+    f.write("test2")
+  winshell.delete_file(filepath)
 
   #
   # Finally you create the newest version
   #
-  with open (filepath, "w") as f:
-    f.write ("test3")
+  with open(filepath, "w") as f:
+    f.write("test3")
 
-  recycle_bin = winshell.recycle_bin ()
-  print (recycle_bin.versions (filepath))
+  recycle_bin = winshell.recycle_bin()
+  print(recycle_bin.versions(filepath))
 
   #
   # Now you undelete the previous versions which
   # will be renamed as "Copy of..." or something similar.
   #
-  print winshell.undelete (filepath)
-  print winshell.undelete (filepath)
+  print winshell.undelete(filepath)
+  print winshell.undelete(filepath)
 
 
 ..  py:function:: recycle_bin
