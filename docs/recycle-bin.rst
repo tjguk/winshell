@@ -5,7 +5,7 @@ Recycle Bin
     :synopsis: Manage shell shortcuts
 ..  moduleauthor:: Tim Golden <mail@timgolden.me.uk>
 
-The Windows Shell allows file to be deleted which can then be retrieved
+The Windows Shell allows files to be deleted which can then be retrieved
 later, as though picked out of a rubbish bin. This funcionality is exposed
 here by means of the :class:`ShellRecycleBin` class which allows the items in
 the bin to be enumerated. Each item has methods which return its original
@@ -83,7 +83,7 @@ not sure which version you're after. So::
     iterable, returning the deleted items wrapped in :class:`ShellRecycledItem`
     objects. It also exposes a couple of common-need convenience methods:
     :meth:`versions` returns a list of all recycled versions of a given original
-    filepath; and :meth:`restore_newest` which restores the most-recently
+    filepath; and :meth:`undelete` which restores the most-recently
     binned version of a given original filepath.
 
     The object has the following methods:
