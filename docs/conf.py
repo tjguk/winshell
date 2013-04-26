@@ -13,7 +13,7 @@
 
 import sys, os
 import imp
-__version__ = imp.load_source ("__winshell_version__", "../__winshell_version__.py")
+__version__ = imp.load_source("__winshell_version__", "../__winshell_version__.py")
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

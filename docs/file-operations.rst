@@ -15,25 +15,67 @@ Functions
 
 Three functions are exposed with very similar signatures:
 
-.. py:function:: copy_file(source_path, target_path, allow_undo=True, no_confirm=False, rename_on_collision=True, silent=False, hWnd=None)
+.. py:function:: copy_file(source_path, target_path, allow_undo=True, no_confirm=False, rename_on_collision=True, silent=False, extra_flags=0, hWnd=None)
 
    Use shell functionality to copy a file, optionally with animation, collision
    renaming and specifying a window to run against.
 
-   :param source_path: a simple or wildcard file specification
-   :param target_path: a folder or file
+   :param source_path: a single or a list of simple or wildcard file specifications
+   :param target_path: a single or a list of simple or wildcard file or folder specifications
    :param allow_undo: whether to enable Explorer to reverse this operation
    :param no_confirm: whether to overwrite a file without asking
    :param rename_on_collision: whether to generate an automatically-renamed alternative when the target_path already exists
    :param silent: whether to hide the animated display
+   :param extra_flags: an integer which will be OR-ed into the flags parameter of SHFileOperation
    :param hWnd: against which window handle to display any animated dialog
 
-The other functions have identical signatures:
+.. py:function:: move_file(source_path, target_path, allow_undo=True, no_confirm=False, rename_on_collision=True, silent=False, extra_flags=0, hWnd=None)
 
-* move_file
-* rename_file
-* delete_file
+   Use shell functionality to move a file, optionally with animation, collision
+   renaming and specifying a window to run against.
 
+   :param source_path: a single or a list of simple or wildcard file specifications
+   :param target_path: a single or a list of simple or wildcard file or folder specifications
+   :param allow_undo: whether to enable Explorer to reverse this operation
+   :param no_confirm: whether to overwrite a file without asking
+   :param rename_on_collision: whether to generate an automatically-renamed alternative when the target_path already exists
+   :param silent: whether to hide the animated display
+   :param extra_flags: an integer which will be OR-ed into the flags parameter of SHFileOperation
+   :param hWnd: against which window handle to display any animated dialog
+
+.. py:function:: rename_file(source_path, target_path, allow_undo=True, no_confirm=False, rename_on_collision=True, silent=False, extra_flags=0, hWnd=None)
+
+   Use shell functionality to rename a file, optionally with animation, collision
+   renaming and specifying a window to run against.
+
+   :param source_path: a single or a list of simple or wildcard file specifications
+   :param target_path: a single or a list of simple or wildcard file or folder specifications
+   :param allow_undo: whether to enable Explorer to reverse this operation
+   :param no_confirm: whether to overwrite a file without asking
+   :param rename_on_collision: whether to generate an automatically-renamed alternative when the target_path already exists
+   :param silent: whether to hide the animated display
+   :param extra_flags: an integer which will be OR-ed into the flags parameter of SHFileOperation
+   :param hWnd: against which window handle to display any animated dialog
+
+
+  source_path,
+  allow_undo=True,
+  no_confirm=False,
+  silent=False,
+  extra_flags=0,
+  hWnd=None
+
+.. py:function:: delete_file(source_path, allow_undo=True, no_confirm=False, silent=False, extra_flags=0, hWnd=None)
+
+   Use shell functionality to delete a file, optionally with animation, collision
+   renaming and specifying a window to run against.
+
+   :param source_path: a single or a list of simple or wildcard file specifications
+   :param allow_undo: whether to enable Explorer to reverse this operation
+   :param no_confirm: whether to overwrite a file without asking
+   :param silent: whether to hide the animated display
+   :param extra_flags: an integer which will be OR-ed into the flags parameter of SHFileOperation
+   :param hWnd: against which window handle to display any animated dialog
 
 References
 ----------

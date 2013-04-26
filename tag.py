@@ -4,42 +4,43 @@ import subprocess
 PROJECT = "winshell"
 VERSION_FILE = "__%s_version__.py" % PROJECT
 
-def git (command):
-  if isinstance (command, basestring):
-    command = [command]
-  return subprocess.check_output (["git.cmd"] + command)
-
 VERSION_BLOCK = """
 # -*- coding: UTF8 -*-
 __VERSION__ = "%(tag)s"
 __RELEASE__ = ""
 """
 
-def main (tag):
-  #
-  # Add stuff to changelog
-  #
-  git ("checkout master")
-  git ("pull")
-  with open (VERSION_FILE, "w") as f:
-    f.write (VERSION_BLOCK % tag)
-  git (["add", VERSION_FILE])
-  git (["commit", "-m", "Tagged master for v%s" % tag])
 
-  git ("checkout stable")
-  git ("pull")
-  git ("merge master")
-  git (["tag", tag])
+def git(command):
+    if isinstance(command, basestring):
+        command = [command]
+    return subprocess.check_output(["git.cmd"] + command)
 
-  git ("checkout master")
-  git ("push --all")
-  git ("push --tags")
+def main(tag):
+    #
+    # Add stuff to changelog
+    #
+    git("checkout master")
+    git("pull")
+    with open(VERSION_FILE, "w") as f:
+        f.write(VERSION_BLOCK % tag)
+    git(["add", VERSION_FILE])
+    git(["commit", "-m", "Tagged master for v%s" % tag])
 
-  subprocess.call ("python setup.py sdist")
+    git("checkout stable")
+    git("pull")
+    git("merge master")
+    git(["tag", tag])
 
-  #
-  # Reset version.py to next version-dev
-  #
+    git("checkout master")
+    git("push --all")
+    git("push --tags")
+
+    subprocess.call("python setup.py sdist")
+
+    #
+    # Reset version.py to next version-dev
+    #
 
 if __name__ == '__main__':
-  main (*sys.argv[1:])
+    main(*sys.argv[1:])

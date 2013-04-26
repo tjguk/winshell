@@ -5,7 +5,7 @@ Recycle Bin
     :synopsis: Manage shell shortcuts
 ..  moduleauthor:: Tim Golden <mail@timgolden.me.uk>
 
-The Windows Shell allows file to be deleted which can then be retrieved
+The Windows Shell allows files to be deleted which can then be retrieved
 later, as though picked out of a rubbish bin. This funcionality is exposed
 here by means of the :class:`ShellRecycleBin` class which allows the items in
 the bin to be enumerated. Each item has methods which return its original
@@ -29,36 +29,36 @@ not sure which version you're after. So::
   import os, sys
   import winshell
 
-  filepath = os.path.abspath ("test.txt")
+  filepath = os.path.abspath("test.txt")
   #
   # You create a file and delete it
   #
-  with open (filepath, "w") as f:
-    f.write ("test1")
-  winshell.delete_file (filepath)
+  with open(filepath, "w") as f:
+    f.write("test1")
+  winshell.delete_file(filepath)
 
   #
   # Then you create a newer version and delete that
   #
-  with open (filepath, "w") as f:
-    f.write ("test2")
-  winshell.delete_file (filepath)
+  with open(filepath, "w") as f:
+    f.write("test2")
+  winshell.delete_file(filepath)
 
   #
   # Finally you create the newest version
   #
-  with open (filepath, "w") as f:
-    f.write ("test3")
+  with open(filepath, "w") as f:
+    f.write("test3")
 
-  recycle_bin = winshell.recycle_bin ()
-  print (recycle_bin.versions (filepath))
+  recycle_bin = winshell.recycle_bin()
+  print(recycle_bin.versions(filepath))
 
   #
   # Now you undelete the previous versions which
   # will be renamed as "Copy of..." or something similar.
   #
-  print winshell.undelete (filepath)
-  print winshell.undelete (filepath)
+  print winshell.undelete(filepath)
+  print winshell.undelete(filepath)
 
 
 ..  py:function:: recycle_bin
@@ -83,7 +83,7 @@ not sure which version you're after. So::
     iterable, returning the deleted items wrapped in :class:`ShellRecycledItem`
     objects. It also exposes a couple of common-need convenience methods:
     :meth:`versions` returns a list of all recycled versions of a given original
-    filepath; and :meth:`restore_newest` which restores the most-recently
+    filepath; and :meth:`undelete` which restores the most-recently
     binned version of a given original filepath.
 
     The object has the following methods:
