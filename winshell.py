@@ -512,7 +512,16 @@ class ConsoleProperties(WinshellObject):
 
     @classmethod
     def from_shortcut(cls, shortcut):
-        return cls(**shortcut.get_data().data(shellcon.NT_CONSOLE_PROPS_SIG))
+        return cls(**shortcut.get_data_list()[shellcon.NT_CONSOLE_PROPS_SIG])
+
+    def __iter__(self):
+        #
+        # Have __iter__ return the property items so that
+        # the set_properties method of shortcut can call dict()
+        # on its parameter and not care whether it's really a
+        # dict or not
+        #
+        return self._properties.iteritems()
 
     def as_string(self):
         return "ConsoleProperties"
@@ -565,8 +574,14 @@ class _ShellLinkDataList(WinshellObject):
 
         return bool(self._shell_object.GetFlags() & attribute)
 
-    def data(self, sig):
+    def __getitem__(self, sig):
         return self._shell_object.CopyDataBlock(sig)
+
+    def __setitem__(self, sig, data):
+        self._shell_object.AddDataBlock(data)
+
+    def __delitem__(self, sig):
+        self._shell_object.RemoveDataBlock(sig)
 
 class Shortcut(WinshellObject):
 
@@ -695,7 +710,20 @@ class Shortcut(WinshellObject):
 
     working_directory = property(_get_working_directory, _set_working_directory)
 
-    def get_data(self):
+    def get_console_properties(self):
+        return ConsoleProperties.from_shortcut(self)
+    def set_console_properties(self, properties):
+        if properties is None:
+            return del_console_properties()
+        data_list = self.get_data_list()
+        del data_list[shellcon.NT_CONSOLE_PROPS_SIG]
+        data_list[shellcon.NT_CONSOLE_PROPS_SIG] = dict(properties)
+    def del_console_properties(self):
+        data_list = self.get_data_list()
+        del data_list[shellcon.NT_CONSOLE_PROPS_SIG]
+    console_properties = property(get_console_properties, set_console_properties, del_console_properties)
+
+    def get_data_list(self):
       return _ShellLinkDataList(self._shell_link.QueryInterface(shell.IID_IShellLinkDataList))
 
     def write(self, lnk_filepath=None):
