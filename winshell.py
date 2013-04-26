@@ -123,7 +123,7 @@ DETAILS = {
 }
 for fmtid_name, pid_names in DETAILS.items():
   for pid_name in pid_names:
-    print "registering: %s & %s" % (fmtid_name, pid_name)
+    #~ print "registering: %s & %s" % (fmtid_name, pid_name)
     register_by_name (fmtid_name, pid_name)
 
 """
@@ -454,6 +454,49 @@ def delete_file(
         hWnd
     )
 
+class _ShellLinkDataList(WinshellObject):
+
+    def __init__(self, shell_link_data_list):
+        self._shell_object = shell_link_data_list
+
+    def as_string(self):
+        return str(self._shell_object)
+
+    def dumped(self, level=0):
+        output = []
+        output.append(self.as_string())
+        output.append("")
+        output.append(dumped_list(self.flags(), level))
+        return dumped("\n".join(output), level)
+
+    def flags(self):
+        prefix = "SLDF_"
+        results = set()
+        all_attributes = self._shell_object.GetFlags()
+        for attr in dir(shellcon):
+            if attr.startswith(prefix):
+                if all_attributes & getattr(shellcon, attr):
+                    results.add(attr[len(prefix):].lower())
+        return results
+
+    def flag(self, attributes):
+        try:
+            attribute = int(attributes)
+        except ValueError:
+            attribute = getattr(shellcon, "SLDF_" + attributes.upper())
+        except TypeError:
+            attribute = 0
+            for a in attributes:
+                try:
+                    attribute = attribute | a
+                except TypeError:
+                    attribute = attribute | getattr(shellcon, "SLDF_" + a.upper())
+
+        return bool(self._shell_object.GetFlags() & attribute)
+
+    def data(self, sig):
+        return self._shell_object.CopyDataBlock(sig)
+
 class Shortcut(WinshellObject):
 
     show_states = {
@@ -580,6 +623,9 @@ class Shortcut(WinshellObject):
         self._shell_link.SetWorkingDirectory(working_directory)
 
     working_directory = property(_get_working_directory, _set_working_directory)
+
+    def get_data(self):
+      return _ShellLinkDataList(self._shell_link.QueryInterface(shell.IID_IShellLinkDataList))
 
     def write(self, lnk_filepath=None):
         if not lnk_filepath:
