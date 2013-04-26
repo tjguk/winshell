@@ -28,6 +28,7 @@ from __winshell_version__ import __VERSION__
 import os, sys
 import datetime
 import tempfile
+import _winreg as winreg
 
 import win32con
 from win32com import storagecon
@@ -453,6 +454,76 @@ def delete_file(
         extra_flags,
         hWnd
     )
+
+class ConsoleProperties(WinshellObject):
+
+    fields = [
+        'AutoPosition',
+        'ColorTable', 'CursorSize',
+        'FaceName', 'FillAttribute', 'Font', 'FontFamily', 'FontSize', 'FontWeight', 'FullScreen',
+        'HistoryBufferSize', 'HistoryNoDup',
+        'InputBufferSize', 'InsertMode',
+        'NumberOfHistoryBuffers',
+        'PopupFillAttribute',
+        'QuickEdit',
+        'ScreenBufferSize', 'Signature', 'Size',
+        'WindowOrigin', 'WindowSize'
+    ]
+
+    def __init__(self, **kwargs):
+        self._properties = dict(self.get_defaults())
+        self._properties['AutoPosition'] = self._properties.get('WindowOrigin') is not None
+        self._properties.update(kwargs)
+
+    def __getattr__(self, attr):
+        return self._properties[attr]
+
+    @staticmethod
+    def tuple_from_dword(value):
+        if value is None:
+            return None
+        return value >> 16, value & 0xffff
+
+    @staticmethod
+    def dword_from_tuple(value):
+        if value is None:
+            return None
+        v0, v1 = value
+        return v0 << 16 + v1
+
+    @classmethod
+    def get_defaults(cls):
+        hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Console")
+        def value(name):
+            try:
+                return winreg.QueryValueEx(hkey, name)[0]
+            except WindowsError:
+                return None
+
+        defaults = {}
+        defaults['ColorTable'] = tuple(value("ColorTable%02d" % i) for i in range(16))
+        defaults['WindowSize'] = cls.tuple_from_dword(value("WindowSize"))
+        defaults['WindowOrigin'] = cls.tuple_from_dword(value("WindowOrigin"))
+        for field in cls.fields:
+            if field not in defaults:
+                defaults[field] = value(field)
+
+        return defaults
+
+    @classmethod
+    def from_shortcut(cls, shortcut):
+        return cls(**shortcut.get_data().data(shellcon.NT_CONSOLE_PROPS_SIG))
+
+    def as_string(self):
+        return "ConsoleProperties"
+
+    def dumped(self, level=0):
+        output = []
+        output.append(self.as_string())
+        output.append("")
+        for k, v in sorted(self._properties.items()):
+            output.append("%s: %s" % (k, v))
+        return dumped("\n".join(output), level)
 
 class _ShellLinkDataList(WinshellObject):
 
