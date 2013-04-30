@@ -456,6 +456,13 @@ def delete_file(
     )
 
 class ConsoleProperties(WinshellObject):
+    """Represent the shell properties of a console-based
+    application or shortcut. Access to the raw data is via
+    __get/setitem__ while access to managed properties is via
+    attributes. eg,
+
+    props = ConsoleProperties() # start with system defaults
+    """
 
     fields = [
         'AutoPosition',
@@ -466,13 +473,15 @@ class ConsoleProperties(WinshellObject):
         'NumberOfHistoryBuffers',
         'PopupFillAttribute',
         'QuickEdit',
-        'ScreenBufferSize', 'Signature', 'Size',
+        'ScreenBufferSize',
         'WindowOrigin', 'WindowSize'
     ]
 
     def __init__(self, **kwargs):
         self._properties = dict(self.get_defaults())
         self._properties['AutoPosition'] = self._properties.get('WindowOrigin') is not None
+        self._properties['FillAttribute'] = 7
+        self._properties['PopupFillAttribute'] = 0
         self._properties.update(kwargs)
 
     def __getattr__(self, attr):
@@ -521,7 +530,15 @@ class ConsoleProperties(WinshellObject):
         # on its parameter and not care whether it's really a
         # dict or not
         #
-        return self._properties.iteritems()
+        properties = dict(self._properties)
+        if properties.get("WindowOrigin") is None:
+            properties['WindowOrigin'] = (0, 0)
+        screen_buffer_size = properties.get("ScreenBufferSize", 0)
+        properties['ScreenBufferSize'] = self.tuple_from_dword(screen_buffer_size)
+        properties['InputBufferSize'] = properties.get('InputBufferSize') or 0
+        properties['Font'] = properties.get('Font') or 0
+        properties['FontSize'] = self.tuple_from_dword(properties.get('FontSize')) or (0, 12)
+        return properties.iteritems()
 
     def as_string(self):
         return "ConsoleProperties"
@@ -578,6 +595,7 @@ class _ShellLinkDataList(WinshellObject):
         return self._shell_object.CopyDataBlock(sig)
 
     def __setitem__(self, sig, data):
+        data['Signature'] = sig
         self._shell_object.AddDataBlock(data)
 
     def __delitem__(self, sig):
