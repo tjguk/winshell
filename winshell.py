@@ -478,7 +478,7 @@ class ConsoleProperties(WinshellObject):
     ]
 
     def __init__(self, **kwargs):
-        self._properties = dict(self.get_defaults())
+        self.__dict__['_properties'] = dict(self.get_defaults())
         self._properties['AutoPosition'] = self._properties.get('WindowOrigin') is not None
         self._properties['FillAttribute'] = 7
         self._properties['PopupFillAttribute'] = 0
@@ -486,6 +486,9 @@ class ConsoleProperties(WinshellObject):
 
     def __getattr__(self, attr):
         return self._properties[attr]
+
+    def __setattr__(self, attr, value):
+        self._properties[attr] = value
 
     @staticmethod
     def tuple_from_dword(value):
@@ -513,6 +516,8 @@ class ConsoleProperties(WinshellObject):
         defaults['ColorTable'] = tuple(value("ColorTable%02d" % i) for i in range(16))
         defaults['WindowSize'] = cls.tuple_from_dword(value("WindowSize"))
         defaults['WindowOrigin'] = cls.tuple_from_dword(value("WindowOrigin"))
+        defaults['ScreenBufferSize'] = cls.tuple_from_dword(value("ScreenBufferSize"))
+        defaults['FontSize'] = cls.tuple_from_dword(value('FontSize')) or (0, 12)
         for field in cls.fields:
             if field not in defaults:
                 defaults[field] = value(field)
@@ -534,10 +539,8 @@ class ConsoleProperties(WinshellObject):
         if properties.get("WindowOrigin") is None:
             properties['WindowOrigin'] = (0, 0)
         screen_buffer_size = properties.get("ScreenBufferSize", 0)
-        properties['ScreenBufferSize'] = self.tuple_from_dword(screen_buffer_size)
         properties['InputBufferSize'] = properties.get('InputBufferSize') or 0
         properties['Font'] = properties.get('Font') or 0
-        properties['FontSize'] = self.tuple_from_dword(properties.get('FontSize')) or (0, 12)
         return properties.iteritems()
 
     def as_string(self):
