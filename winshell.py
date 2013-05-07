@@ -123,7 +123,6 @@ DETAILS = {
 }
 for fmtid_name, pid_names in DETAILS.items():
   for pid_name in pid_names:
-    print "registering: %s & %s" % (fmtid_name, pid_name)
     register_by_name (fmtid_name, pid_name)
 
 """
@@ -558,7 +557,6 @@ class Shortcut(WinshellObject):
 
     def _get_show_cmd(self):
         show_cmd = self._shell_link.GetShowCmd()
-        print "show_cmd:", show_cmd
         for k, v in self.show_states.items():
             if v == show_cmd:
                 return k
