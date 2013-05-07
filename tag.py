@@ -25,7 +25,8 @@ def main(tag):
     with open(VERSION_FILE, "w") as f:
         f.write(VERSION_BLOCK % tag)
     git(["add", VERSION_FILE])
-    git(["commit", "-m", "Tagged master for v%s" % tag])
+    if subprocess.check_output(["git", "status", "--porcelain"]):
+        git(["commit", "-m", "Tagged master for v%s" % tag])
 
     git("checkout stable")
     git("pull")
