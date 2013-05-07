@@ -49,16 +49,6 @@ try:
     unicode
 except NameError:
     unicode = str
-try:
-    from collections import namedtuple
-    StorageStat = namedtuple(
-        "StorageStat",
-        ["name", "type", "size", "mtime", "ctime", "atime", "mode", "locks_supported", "clsid", "state_bits", "reserved"]
-    )
-    make_storage_stat = StorageStat._make
-except ImportError:
-    make_storage_stat = tuple
-
 
 #
 # Constants & calculated types
@@ -78,69 +68,6 @@ class x_recycle_bin(x_winshell):
 
 class x_not_found_in_recycle_bin(x_recycle_bin):
     pass
-
-_fmtids = dict ((k[len ("FMTID_"):], getattr (shell, k)) for k in dir (shell) if k.startswith ("FMTID_"))
-_pids = dict ((k[len ("PID_"):], getattr (shellcon, k)) for k in dir (shellcon) if k.startswith ("PID_"))
-_pids.update (dict (
-    STG_NAME=10,
-    STG_STORAGETYPE=4,
-    STG_SIZE=12,
-    STG_WRITETIME=14,
-    STG_ATTRIBUTES=13,
-    SUMMARY_TITLE=2,
-    SUMMARY_SUBJECT=3,
-    SUMMARY_AUTHOR=4,
-    SUMMARY_KEYWORDS=5,
-    SUMMARY_COMMENTS=6,
-    SUMMARY_TEMPLATE=7,
-    SUMMARY_LAST_SAVED_BY=8,
-    SUMMARY_REVISION_NUMBER=9,
-    SUMMARY_TOTAL_EDITING_TIME=10,
-    SUMMARY_LAST_PRINTED=11,
-    SUMMARY_CREATE_TIME=12,
-    SUMMARY_LAST_SAVED_TIME=13,
-    SUMMARY_NUMBER_OF_PAGES=14,
-    SUMMARY_NUMBER_OF_WORDS=15,
-    SUMMARY_NUMBER_OF_CHARACTERS=16,
-    SUMMARY_THUMBNAIL=17,
-    SUMMARY_APPLICATION=18,
-    SUMMARY_SECURITY=19
-))
-
-_FMTID_PIDS = {}
-_PID_FMTID = {}
-def register_by_name (fmtid_name, pid_name):
-  _FMTID_PIDS.setdefault (fmtid_name, set ()).add (pid_name)
-  _PID_FMTID[pid_name] = fmtid_name
-
-DETAILS = {
-  "Storage" : ["STG_NAME", "STG_STORAGETYPE", "STG_SIZE", "STG_WRITETIME", "STG_ATTRIBUTES"],
-  "ShellDetails" : ["DESCRIPTIONID", "FINDDATA", "NETRESOURCE"],
-  "Displaced" : ["DISPLACED_FROM", "DISPLACED_DATE"],
-  "Misc" : ["MISC_OWNER", "MISC_STATUS"],
-  "Query" : ["QUERY_RANK"],
-  "Volume" : ["VOLUME_FREE"],
-  "SummaryInformation" : [i for i in _pids if i.startswith("SUMMARY_")]
-}
-for fmtid_name, pid_names in DETAILS.items():
-  for pid_name in pid_names:
-    register_by_name (fmtid_name, pid_name)
-
-"""
-SAMPLE CODE
-
-def __detail (pid_name):
-  pid = _pids[pid_name]
-  fmtid = _fmtids[_PID_FMTID[pid_name)]
-
-def __dump_details (obj):
-  for fmtid_name, fmtid in sorted (_fmids.items ()):
-    print fmtid_name
-    for pid_name, pid in _FMTID_PIDS[pid_name]:
-      value = obj.GetDetailsEx (fmtid, pid)
-      if value:
-        print "  ", pid_name, "=>", value
-"""
 
 
 #
@@ -454,155 +381,6 @@ def delete_file(
         hWnd
     )
 
-class ConsoleProperties(WinshellObject):
-    """Represent the shell properties of a console-based
-    application or shortcut. Access to the raw data is via
-    __get/setitem__ while access to managed properties is via
-    attributes. eg,
-
-    props = ConsoleProperties() # start with system defaults
-    """
-
-    fields = [
-        'AutoPosition',
-        'ColorTable', 'CursorSize',
-        'FaceName', 'FillAttribute', 'Font', 'FontFamily', 'FontSize', 'FontWeight', 'FullScreen',
-        'HistoryBufferSize', 'HistoryNoDup',
-        'InputBufferSize', 'InsertMode',
-        'NumberOfHistoryBuffers',
-        'PopupFillAttribute',
-        'QuickEdit',
-        'ScreenBufferSize',
-        'WindowOrigin', 'WindowSize'
-    ]
-
-    def __init__(self, **kwargs):
-        self.__dict__['_properties'] = dict(self.get_defaults())
-        self._properties['AutoPosition'] = self._properties.get('WindowOrigin') is not None
-        self._properties['FillAttribute'] = 7
-        self._properties['PopupFillAttribute'] = 0
-        self._properties.update(kwargs)
-
-    def __getattr__(self, attr):
-        return self._properties[attr]
-
-    def __setattr__(self, attr, value):
-        self._properties[attr] = value
-
-    @staticmethod
-    def tuple_from_dword(value):
-        if value is None:
-            return None
-        return value >> 16, value & 0xffff
-
-    @staticmethod
-    def dword_from_tuple(value):
-        if value is None:
-            return None
-        v0, v1 = value
-        return v0 << 16 + v1
-
-    @classmethod
-    def get_defaults(cls):
-        hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Console")
-        def value(name):
-            try:
-                return winreg.QueryValueEx(hkey, name)[0]
-            except WindowsError:
-                return None
-
-        defaults = {}
-        defaults['ColorTable'] = tuple(value("ColorTable%02d" % i) for i in range(16))
-        defaults['WindowSize'] = cls.tuple_from_dword(value("WindowSize"))
-        defaults['WindowOrigin'] = cls.tuple_from_dword(value("WindowOrigin"))
-        defaults['ScreenBufferSize'] = cls.tuple_from_dword(value("ScreenBufferSize"))
-        defaults['FontSize'] = cls.tuple_from_dword(value('FontSize')) or (0, 12)
-        for field in cls.fields:
-            if field not in defaults:
-                defaults[field] = value(field)
-
-        return defaults
-
-    @classmethod
-    def from_shortcut(cls, shortcut):
-        return cls(**shortcut.get_data_list()[shellcon.NT_CONSOLE_PROPS_SIG])
-
-    def __iter__(self):
-        #
-        # Have __iter__ return the property items so that
-        # the set_properties method of shortcut can call dict()
-        # on its parameter and not care whether it's really a
-        # dict or not
-        #
-        properties = dict(self._properties)
-        if properties.get("WindowOrigin") is None:
-            properties['WindowOrigin'] = (0, 0)
-        screen_buffer_size = properties.get("ScreenBufferSize", 0)
-        properties['InputBufferSize'] = properties.get('InputBufferSize') or 0
-        properties['Font'] = properties.get('Font') or 0
-        return properties.iteritems()
-
-    def as_string(self):
-        return "ConsoleProperties"
-
-    def dumped(self, level=0):
-        output = []
-        output.append(self.as_string())
-        output.append("")
-        for k, v in sorted(self._properties.items()):
-            output.append("%s: %s" % (k, v))
-        return dumped("\n".join(output), level)
-
-class _ShellLinkDataList(WinshellObject):
-
-    def __init__(self, shell_link_data_list):
-        self._shell_object = shell_link_data_list
-
-    def as_string(self):
-        return str(self._shell_object)
-
-    def dumped(self, level=0):
-        output = []
-        output.append(self.as_string())
-        output.append("")
-        output.append(dumped_list(self.flags(), level))
-        return dumped("\n".join(output), level)
-
-    def flags(self):
-        prefix = "SLDF_"
-        results = set()
-        all_attributes = self._shell_object.GetFlags()
-        for attr in dir(shellcon):
-            if attr.startswith(prefix):
-                if all_attributes & getattr(shellcon, attr):
-                    results.add(attr[len(prefix):].lower())
-        return results
-
-    def flag(self, attributes):
-        try:
-            attribute = int(attributes)
-        except ValueError:
-            attribute = getattr(shellcon, "SLDF_" + attributes.upper())
-        except TypeError:
-            attribute = 0
-            for a in attributes:
-                try:
-                    attribute = attribute | a
-                except TypeError:
-                    attribute = attribute | getattr(shellcon, "SLDF_" + a.upper())
-
-        return bool(self._shell_object.GetFlags() & attribute)
-
-    def __getitem__(self, sig):
-        return self._shell_object.CopyDataBlock(sig)
-
-    def __setitem__(self, sig, data):
-        data['Signature'] = sig
-        self._shell_object.AddDataBlock(data)
-
-    def __delitem__(self, sig):
-        self._shell_object.RemoveDataBlock(sig)
-
 class Shortcut(WinshellObject):
 
     show_states = {
@@ -729,22 +507,6 @@ class Shortcut(WinshellObject):
         self._shell_link.SetWorkingDirectory(working_directory)
 
     working_directory = property(_get_working_directory, _set_working_directory)
-
-    def get_console_properties(self):
-        return ConsoleProperties.from_shortcut(self)
-    def set_console_properties(self, properties):
-        if properties is None:
-            return del_console_properties()
-        data_list = self.get_data_list()
-        del data_list[shellcon.NT_CONSOLE_PROPS_SIG]
-        data_list[shellcon.NT_CONSOLE_PROPS_SIG] = dict(properties)
-    def del_console_properties(self):
-        data_list = self.get_data_list()
-        del data_list[shellcon.NT_CONSOLE_PROPS_SIG]
-    console_properties = property(get_console_properties, set_console_properties, del_console_properties)
-
-    def get_data_list(self):
-      return _ShellLinkDataList(self._shell_link.QueryInterface(shell.IID_IShellLinkDataList))
 
     def write(self, lnk_filepath=None):
         if not lnk_filepath:
