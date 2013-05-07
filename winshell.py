@@ -608,7 +608,7 @@ class Shortcut(WinshellObject):
     show_states = {
         "normal" : win32con.SW_SHOWNORMAL,
         "max" : win32con.SW_SHOWMAXIMIZED,
-        "min" : win32con.SW_SHOWMINIMIZED
+        "min" : win32con.SW_SHOWMINNOACTIVE
     }
 
     def __init__(self, lnk_filepath=None, **kwargs):
