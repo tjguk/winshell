@@ -7,7 +7,7 @@ VERSION_FILE = "__%s_version__.py" % PROJECT
 
 VERSION_BLOCK = """
 # -*- coding: UTF8 -*-
-__VERSION__ = "%(tag)s"
+__VERSION__ = "%s"
 __RELEASE__ = ""
 """
 
