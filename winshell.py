@@ -459,7 +459,7 @@ class Shortcut(WinshellObject):
     show_states = {
         "normal" : win32con.SW_SHOWNORMAL,
         "max" : win32con.SW_SHOWMAXIMIZED,
-        "min" : win32con.SW_SHOWMINIMIZED
+        "min" : win32con.SW_SHOWMINNOACTIVE
     }
 
     def __init__(self, lnk_filepath=None, **kwargs):
@@ -558,6 +558,7 @@ class Shortcut(WinshellObject):
 
     def _get_show_cmd(self):
         show_cmd = self._shell_link.GetShowCmd()
+        print "show_cmd:", show_cmd
         for k, v in self.show_states.items():
             if v == show_cmd:
                 return k
