@@ -11,11 +11,10 @@ __VERSION__ = "%s"
 __RELEASE__ = ""
 """
 
-
 def git(command):
     if isinstance(command, basestring):
         command = shlex.split(command)
-    return subprocess.check_output(["git.cmd"] + command)
+    return subprocess.check_output(["git"] + command)
 
 def main(tag):
     #
