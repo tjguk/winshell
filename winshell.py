@@ -124,7 +124,6 @@ DETAILS = {
 }
 for fmtid_name, pid_names in DETAILS.items():
   for pid_name in pid_names:
-    #~ print "registering: %s & %s" % (fmtid_name, pid_name)
     register_by_name (fmtid_name, pid_name)
 
 """
