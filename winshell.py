@@ -28,7 +28,6 @@ from __winshell_version__ import __VERSION__
 import os, sys
 import datetime
 import tempfile
-import _winreg as winreg
 
 import win32con
 from win32com import storagecon
@@ -723,24 +722,24 @@ class ShellItem(WinshellObject):
 
         return bool(self.parent._folder.GetAttributesOf([self.rpidl], attribute) & attribute)
 
-    def details (self, fmtid_name):
-        return  dict ((pid_name, self.detail (fmtid_name, pid_name)) for pid_name in DETAILS[fmtid_name])
+    def details(self, fmtid_name):
+        return  dict((pid_name, self.detail(fmtid_name, pid_name)) for pid_name in DETAILS[fmtid_name])
 
-    def detail (self, fmtid, pid):
+    def detail(self, fmtid, pid):
         try:
-            fmtid = pywintypes.IID (fmtid)
+            fmtid = pywintypes.IID(fmtid)
         except pywintypes.com_error:
             fmtid = _fmtids[fmtid]
         try:
-            pid = int (pid)
-        except (ValueError, TypeError):
+            pid = int(pid)
+        except(ValueError, TypeError):
             pid = _pids[pid]
         if self.parent:
             folder = self.parent._folder
         else:
             folder = self._folder
-        folder2 = folder.QueryInterface (shell.IID_IShellFolder2)
-        return folder2.GetDetailsEx (self.rpidl, (fmtid, pid))
+        folder2 = folder.QueryInterface(shell.IID_IShellFolder2)
+        return folder2.GetDetailsEx(self.rpidl, (fmtid, pid))
 
     def filename(self):
         return self.name(shellcon.SHGDN_FORPARSING)
