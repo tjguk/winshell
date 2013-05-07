@@ -1,4 +1,5 @@
 import os, sys
+import shlex
 import subprocess
 
 PROJECT = "winshell"
@@ -13,14 +14,14 @@ __RELEASE__ = ""
 
 def git(command):
     if isinstance(command, basestring):
-        command = [command]
+        command = shlex.split(command)
     return subprocess.check_output(["git.cmd"] + command)
 
 def main(tag):
     #
     # Add stuff to changelog
     #
-    git("checkout master")
+    git("checkout master --quiet")
     git("pull")
     with open(VERSION_FILE, "w") as f:
         f.write(VERSION_BLOCK % tag)
