@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.6.4
+-----
+
+7th May 2013
+
+* Brought module & tests in line with PEP8
+* Added multi-file functionality to copy_file
+* Corrected shortcut minimize option
+
 0.6
 ---
 

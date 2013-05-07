@@ -48,16 +48,6 @@ try:
     unicode
 except NameError:
     unicode = str
-try:
-    from collections import namedtuple
-    StorageStat = namedtuple(
-        "StorageStat",
-        ["name", "type", "size", "mtime", "ctime", "atime", "mode", "locks_supported", "clsid", "state_bits", "reserved"]
-    )
-    make_storage_stat = StorageStat._make
-except ImportError:
-    make_storage_stat = tuple
-
 
 #
 # Constants & calculated types
@@ -77,69 +67,6 @@ class x_recycle_bin(x_winshell):
 
 class x_not_found_in_recycle_bin(x_recycle_bin):
     pass
-
-_fmtids = dict ((k[len ("FMTID_"):], getattr (shell, k)) for k in dir (shell) if k.startswith ("FMTID_"))
-_pids = dict ((k[len ("PID_"):], getattr (shellcon, k)) for k in dir (shellcon) if k.startswith ("PID_"))
-_pids.update (dict (
-    STG_NAME=10,
-    STG_STORAGETYPE=4,
-    STG_SIZE=12,
-    STG_WRITETIME=14,
-    STG_ATTRIBUTES=13,
-    SUMMARY_TITLE=2,
-    SUMMARY_SUBJECT=3,
-    SUMMARY_AUTHOR=4,
-    SUMMARY_KEYWORDS=5,
-    SUMMARY_COMMENTS=6,
-    SUMMARY_TEMPLATE=7,
-    SUMMARY_LAST_SAVED_BY=8,
-    SUMMARY_REVISION_NUMBER=9,
-    SUMMARY_TOTAL_EDITING_TIME=10,
-    SUMMARY_LAST_PRINTED=11,
-    SUMMARY_CREATE_TIME=12,
-    SUMMARY_LAST_SAVED_TIME=13,
-    SUMMARY_NUMBER_OF_PAGES=14,
-    SUMMARY_NUMBER_OF_WORDS=15,
-    SUMMARY_NUMBER_OF_CHARACTERS=16,
-    SUMMARY_THUMBNAIL=17,
-    SUMMARY_APPLICATION=18,
-    SUMMARY_SECURITY=19
-))
-
-_FMTID_PIDS = {}
-_PID_FMTID = {}
-def register_by_name (fmtid_name, pid_name):
-  _FMTID_PIDS.setdefault (fmtid_name, set ()).add (pid_name)
-  _PID_FMTID[pid_name] = fmtid_name
-
-DETAILS = {
-  "Storage" : ["STG_NAME", "STG_STORAGETYPE", "STG_SIZE", "STG_WRITETIME", "STG_ATTRIBUTES"],
-  "ShellDetails" : ["DESCRIPTIONID", "FINDDATA", "NETRESOURCE"],
-  "Displaced" : ["DISPLACED_FROM", "DISPLACED_DATE"],
-  "Misc" : ["MISC_OWNER", "MISC_STATUS"],
-  "Query" : ["QUERY_RANK"],
-  "Volume" : ["VOLUME_FREE"],
-  "SummaryInformation" : [i for i in _pids if i.startswith("SUMMARY_")]
-}
-for fmtid_name, pid_names in DETAILS.items():
-  for pid_name in pid_names:
-    register_by_name (fmtid_name, pid_name)
-
-"""
-SAMPLE CODE
-
-def __detail (pid_name):
-  pid = _pids[pid_name]
-  fmtid = _fmtids[_PID_FMTID[pid_name)]
-
-def __dump_details (obj):
-  for fmtid_name, fmtid in sorted (_fmids.items ()):
-    print fmtid_name
-    for pid_name, pid in _FMTID_PIDS[pid_name]:
-      value = obj.GetDetailsEx (fmtid, pid)
-      if value:
-        print "  ", pid_name, "=>", value
-"""
 
 
 #
@@ -795,24 +722,24 @@ class ShellItem(WinshellObject):
 
         return bool(self.parent._folder.GetAttributesOf([self.rpidl], attribute) & attribute)
 
-    def details (self, fmtid_name):
-        return  dict ((pid_name, self.detail (fmtid_name, pid_name)) for pid_name in DETAILS[fmtid_name])
+    def details(self, fmtid_name):
+        return  dict((pid_name, self.detail(fmtid_name, pid_name)) for pid_name in DETAILS[fmtid_name])
 
-    def detail (self, fmtid, pid):
+    def detail(self, fmtid, pid):
         try:
-            fmtid = pywintypes.IID (fmtid)
+            fmtid = pywintypes.IID(fmtid)
         except pywintypes.com_error:
             fmtid = _fmtids[fmtid]
         try:
-            pid = int (pid)
-        except (ValueError, TypeError):
+            pid = int(pid)
+        except(ValueError, TypeError):
             pid = _pids[pid]
         if self.parent:
             folder = self.parent._folder
         else:
             folder = self._folder
-        folder2 = folder.QueryInterface (shell.IID_IShellFolder2)
-        return folder2.GetDetailsEx (self.rpidl, (fmtid, pid))
+        folder2 = folder.QueryInterface(shell.IID_IShellFolder2)
+        return folder2.GetDetailsEx(self.rpidl, (fmtid, pid))
 
     def filename(self):
         return self.name(shellcon.SHGDN_FORPARSING)
