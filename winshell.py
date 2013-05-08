@@ -393,25 +393,32 @@ class ConsoleProperties(WinshellObject):
     props = ConsoleProperties() # start with system defaults
     """
 
-    fields = [
-        'AutoPosition',
-        'ColorTable', 'CursorSize',
-        'FaceName', 'FillAttribute', 'Font', 'FontFamily', 'FontSize', 'FontWeight', 'FullScreen',
-        'HistoryBufferSize', 'HistoryNoDup',
-        'InputBufferSize', 'InsertMode',
-        'NumberOfHistoryBuffers',
-        'PopupFillAttribute',
-        'QuickEdit',
-        'ScreenBufferSize',
-        'WindowOrigin', 'WindowSize'
-    ]
+    defaults = {
+        'AutoPosition' : None,
+        'ColorTable' : None,
+        'CursorSize' : None,
+        'FaceName' : None,
+        'FillAttribute' : 7,
+        'Font' : None,
+        'FontFamily' : None,
+        'FontSize' : (12, 0),
+        'FontWeight' : None,
+        'FullScreen' : None,
+        'HistoryBufferSize' : None,
+        'HistoryNoDup' : None,
+        'InputBufferSize' : None,
+        'InsertMode' : None,
+        'NumberOfHistoryBuffers' : None,
+        'PopupFillAttribute' : 0,
+        'QuickEdit' : None,
+        'ScreenBufferSize' : None,
+        'WindowOrigin' : None,
+        'WindowSize' : None
+    }
 
-    def __init__(self, **kwargs):
-        self.__dict__['_properties'] = dict(self.get_defaults())
-        self._properties['AutoPosition'] = self._properties.get('WindowOrigin') is not None
-        self._properties['FillAttribute'] = 7
-        self._properties['PopupFillAttribute'] = 0
-        self._properties.update(kwargs)
+    def __init__(self, properties):
+        self.__dict__['_properties'] = {}
+        self._properties.update(properties)
 
     def __getattr__(self, attr):
         return self._properties[attr]
@@ -433,7 +440,7 @@ class ConsoleProperties(WinshellObject):
         return v0 << 16 + v1
 
     @classmethod
-    def get_defaults(cls):
+    def from_defaults(cls):
         hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Console")
         def value(name):
             try:
@@ -446,16 +453,16 @@ class ConsoleProperties(WinshellObject):
         defaults['WindowSize'] = cls.tuple_from_dword(value("WindowSize"))
         defaults['WindowOrigin'] = cls.tuple_from_dword(value("WindowOrigin"))
         defaults['ScreenBufferSize'] = cls.tuple_from_dword(value("ScreenBufferSize"))
-        defaults['FontSize'] = cls.tuple_from_dword(value('FontSize')) or (0, 12)
-        for field in cls.fields:
+        defaults['FontSize'] = cls.tuple_from_dword(value('FontSize')) or cls.defaults['FontSize']
+        for field in cls.defaults:
             if field not in defaults:
-                defaults[field] = value(field)
+                defaults[field] = value(field) or cls.defaults[field]
 
-        return defaults
+        return cls(defaults)
 
     @classmethod
     def from_shortcut(cls, shortcut):
-        return cls(**shortcut.get_data_list()[shellcon.NT_CONSOLE_PROPS_SIG])
+        return cls(shortcut.get_data_list()[shellcon.NT_CONSOLE_PROPS_SIG])
 
     def __iter__(self):
         #
