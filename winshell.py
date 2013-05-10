@@ -61,10 +61,24 @@ PyIShellFolder = type(_desktop_folder)
 undelete_temp = tempfile.mkdtemp()
 
 #
-# Exceptions
+# Error-handling (stolen from winsys)
 #
-class x_winshell(Exception):
-    pass
+class x_winshell(pywintypes.error):
+    u"""Base for all winshell exceptions. Subclasses pywintypes.error so that
+    except pywintypes.error clauses can be used to catch all relevant exceptions.
+    Note that the __init__ is specified so that exception invocations can pass
+    just an error message by keyword.
+    """
+    def __init__ (self, errno=None, errctx=None, errmsg=None):
+        #
+        # Attempt to ensure that the correct sequence of arguments is
+        # passed to the exception: this makes for more sane error-trapping
+        # at the cost of a certain flexibility.
+        #
+        assert isinstance (errno, int) or errno is None
+        assert isinstance (errctx, basestring) or errctx is None
+        assert isinstance (errmsg, basestring) or errmsg is None
+        pywintypes.error.__init__ (self, errno, errctx, errmsg)
 
 class x_recycle_bin(x_winshell):
     pass
@@ -72,12 +86,47 @@ class x_recycle_bin(x_winshell):
 class x_not_found_in_recycle_bin(x_recycle_bin):
     pass
 
+def _signed_to_unsigned (signed):
+    """Convert a (possibly signed) long to unsigned"""
+    unsigned, = struct.unpack ("L", struct.pack ("l", signed))
+    return unsigned
 
-#
-# Stolen from winsys
-#
-def wrapped(fn, *args, **kwargs):
-    return fn(*args, **kwargs)
+def wrapper (winerror_map, default_exception=x_winshell):
+    u"""Map specific windows error codes onto
+    Python exceptions. Always includes a default which is raised if
+    no specific exception is found.
+    """
+    def _wrapped (function, *args, **kwargs):
+        u"""Call a Windows API with parameters, and handle any
+        exception raised either by mapping it to a module-specific
+        one or by passing it back up the chain.
+        """
+        try:
+            return function (*args, **kwargs)
+        except pywintypes.com_error, exception_info:
+            (hresult_code, hresult_name, additional_info, parameter_in_error) = exception_info.args
+            result_code = _signed_to_unsigned (hresult_code)
+            result_name = hresult_name.decode ("mbcs")
+            exception_string = [u"%08X - %s" % (result_code, result_name)]
+            if additional_info:
+                wcode, source_of_error, error_description, whlp_file, whlp_context, scode = additional_info
+                exception_string.append (u"    Error in: %s" % source_of_error.decode ("mbcs"))
+                error_code = _signed_to_unsigned (scode)
+                error_description = (error_description or "").decode ("mbcs").strip ()
+                exception_string.append (u"    %08X - %s" % (error_code, error_description))
+            exception = winerror_map.get (hresult_code, default_exception)
+            raise exception (hresult_code, hresult_name, "\n".join (exception_string))
+        except pywintypes.error, exception_info:
+            (errno, errctx, errmsg) = exception_info.args
+            exception = winerror_map.get (errno, default_exception)
+            raise exception (errno, errctx, errmsg)
+        except (WindowsError, IOError), exception_info:
+            exception = winerror_map.get (exception_info.errno, default_exception)
+            if exception:
+                raise exception (exception_info.errno, "", exception_info.strerror)
+    return _wrapped
+
+wrapped = wrapper()
 
 class Unset(object):
     pass
