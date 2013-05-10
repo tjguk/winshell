@@ -27,6 +27,7 @@ from __winshell_version__ import __VERSION__
 
 import os, sys
 import datetime
+import struct
 import tempfile
 try:
     import winreg
@@ -50,8 +51,10 @@ except NameError:
     basestring = str
 try:
     unicode
+    mbcs = lambda s: s.decode("mbcs")
 except NameError:
     unicode = str
+    mbcs = lambda s: s
 
 #
 # Constants & calculated types
@@ -64,21 +67,21 @@ undelete_temp = tempfile.mkdtemp()
 # Error-handling (stolen from winsys)
 #
 class x_winshell(pywintypes.error):
-    u"""Base for all winshell exceptions. Subclasses pywintypes.error so that
+    """Base for all winshell exceptions. Subclasses pywintypes.error so that
     except pywintypes.error clauses can be used to catch all relevant exceptions.
     Note that the __init__ is specified so that exception invocations can pass
     just an error message by keyword.
     """
-    def __init__ (self, errno=None, errctx=None, errmsg=None):
+    def __init__(self, errno=None, errctx=None, errmsg=None):
         #
         # Attempt to ensure that the correct sequence of arguments is
         # passed to the exception: this makes for more sane error-trapping
         # at the cost of a certain flexibility.
         #
-        assert isinstance (errno, int) or errno is None
-        assert isinstance (errctx, basestring) or errctx is None
-        assert isinstance (errmsg, basestring) or errmsg is None
-        pywintypes.error.__init__ (self, errno, errctx, errmsg)
+        assert isinstance(errno, int) or errno is None
+        assert isinstance(errctx, basestring) or errctx is None
+        assert isinstance(errmsg, basestring) or errmsg is None
+        pywintypes.error.__init__(self, errno, errctx, errmsg)
 
 class x_recycle_bin(x_winshell):
     pass
@@ -86,47 +89,59 @@ class x_recycle_bin(x_winshell):
 class x_not_found_in_recycle_bin(x_recycle_bin):
     pass
 
-def _signed_to_unsigned (signed):
+class x_no_console_properties(x_winshell):
+    pass
+
+def _signed_to_unsigned(signed):
     """Convert a (possibly signed) long to unsigned"""
-    unsigned, = struct.unpack ("L", struct.pack ("l", signed))
+    unsigned, = struct.unpack("L", struct.pack("l", signed))
     return unsigned
 
-def wrapper (winerror_map, default_exception=x_winshell):
-    u"""Map specific windows error codes onto
+def wrapper(winerror_map=None, default_exception=x_winshell):
+    """Map specific windows error codes onto
     Python exceptions. Always includes a default which is raised if
     no specific exception is found.
     """
-    def _wrapped (function, *args, **kwargs):
-        u"""Call a Windows API with parameters, and handle any
+    if winerror_map is None:
+        winerror_map = {}
+
+    def _wrapped(function, *args, **kwargs):
+        """Call a Windows API with parameters, and handle any
         exception raised either by mapping it to a module-specific
         one or by passing it back up the chain.
         """
         try:
-            return function (*args, **kwargs)
-        except pywintypes.com_error, exception_info:
+            return function(*args, **kwargs)
+        except pywintypes.com_error:
+            _, exception_info, _ = sys.exc_info ()
             (hresult_code, hresult_name, additional_info, parameter_in_error) = exception_info.args
-            result_code = _signed_to_unsigned (hresult_code)
-            result_name = hresult_name.decode ("mbcs")
-            exception_string = [u"%08X - %s" % (result_code, result_name)]
+            result_code = _signed_to_unsigned(hresult_code)
+            result_name = mbcs(hresult_name)
+            exception_string = ["%08X - %s" % (result_code, result_name)]
             if additional_info:
                 wcode, source_of_error, error_description, whlp_file, whlp_context, scode = additional_info
-                exception_string.append (u"    Error in: %s" % source_of_error.decode ("mbcs"))
-                error_code = _signed_to_unsigned (scode)
-                error_description = (error_description or "").decode ("mbcs").strip ()
-                exception_string.append (u"    %08X - %s" % (error_code, error_description))
-            exception = winerror_map.get (hresult_code, default_exception)
-            raise exception (hresult_code, hresult_name, "\n".join (exception_string))
-        except pywintypes.error, exception_info:
+                exception_string.append("    Error in: %s" % mbcs(source_of_error))
+                error_code = _signed_to_unsigned(scode)
+                error_description = mbcs(error_description or "").strip()
+                exception_string.append("    %08X - %s" % (error_code, error_description))
+            exception = winerror_map.get(hresult_code) or winerror_map.get(result_code, default_exception)
+            raise exception(hresult_code, hresult_name, "\n".join(exception_string))
+        except pywintypes.error:
+            _, exception_info, _ = sys.exc_info ()
             (errno, errctx, errmsg) = exception_info.args
-            exception = winerror_map.get (errno, default_exception)
-            raise exception (errno, errctx, errmsg)
-        except (WindowsError, IOError), exception_info:
-            exception = winerror_map.get (exception_info.errno, default_exception)
+            exception = winerror_map.get(errno, default_exception)
+            raise exception(errno, errctx, errmsg)
+        except (WindowsError, IOError):
+            _, exception_info, _ = sys.exc_info ()
+            exception = winerror_map.get(exception_info.errno, default_exception)
             if exception:
-                raise exception (exception_info.errno, "", exception_info.strerror)
+                raise exception(exception_info.errno, "", exception_info.strerror)
     return _wrapped
 
-wrapped = wrapper()
+winerror_map = {
+    0x80004005 : x_no_console_properties
+}
+wrapped = wrapper(winerror_map)
 
 class Unset(object):
     pass
@@ -194,7 +209,7 @@ class WinshellObject(object):
 # Now it's just a convenience which supplies the default parameters.
 #
 def get_path(folder_id):
-    return shell.SHGetFolderPath(0, folder_id, None, 0)
+    return wrapped(shell.SHGetFolderPath, 0, folder_id, None, 0)
 
 def get_folder_by_name(name):
     name = name.upper()
@@ -203,7 +218,7 @@ def get_folder_by_name(name):
     try:
         return get_path(getattr(shellcon, name))
     except AttributeError:
-        raise x_winshell("No such CSIDL constant %s" % name)
+        raise x_winshell(errmsg="No such CSIDL constant %s" % name)
 
 def folder(folder):
     if isinstance(folder, int):
@@ -305,13 +320,14 @@ def _file_operation(
         flags |= shellcon.FOF_SILENT
     flags |= extra_flags
 
-    result, n_aborted, mapping = shell.SHFileOperation(
+    result, n_aborted, mapping = wrapped(
+        shell.SHFileOperation,
        (hWnd or 0, operation, source_path, target_path, flags, None, None)
     )
     if result != 0:
         raise x_winshell(result)
     elif n_aborted:
-        raise x_winshell("%d operations were aborted by the user" % n_aborted)
+        raise x_winshell(errmsg="%d operations were aborted by the user" % n_aborted)
 
     return dict(mapping)
 
@@ -442,28 +458,28 @@ class ConsoleProperties(WinshellObject):
     props = ConsoleProperties() # start with system defaults
     """
 
-    defaults = {
-        'AutoPosition' : None,
-        'ColorTable' : None,
-        'CursorSize' : None,
-        'FaceName' : None,
-        'FillAttribute' : 7,
-        'Font' : None,
-        'FontFamily' : None,
-        'FontSize' : (12, 0),
-        'FontWeight' : None,
-        'FullScreen' : None,
-        'HistoryBufferSize' : None,
-        'HistoryNoDup' : None,
-        'InputBufferSize' : None,
-        'InsertMode' : None,
-        'NumberOfHistoryBuffers' : None,
-        'PopupFillAttribute' : 0,
-        'QuickEdit' : None,
-        'ScreenBufferSize' : None,
-        'WindowOrigin' : None,
-        'WindowSize' : None
-    }
+    defaults = dict(
+        AutoPosition=None,
+        ColorTable=None,
+        CursorSize=None,
+        FaceName=None,
+        FillAttribute=7,
+        Font=None,
+        FontFamily=None,
+        FontSize=(12, 0),
+        FontWeight=None,
+        FullScreen=None,
+        HistoryBufferSize=None,
+        HistoryNoDup=None,
+        InputBufferSize=None,
+        InsertMode=None,
+        NumberOfHistoryBuffers=None,
+        PopupFillAttribute=0,
+        QuickEdit=None,
+        ScreenBufferSize=None,
+        WindowOrigin=None,
+        WindowSize=None
+    )
 
     def __init__(self, properties):
         self.__dict__['_properties'] = {}
@@ -491,6 +507,7 @@ class ConsoleProperties(WinshellObject):
     @classmethod
     def from_defaults(cls):
         hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Console")
+
         def value(name):
             try:
                 return winreg.QueryValueEx(hkey, name)[0]
@@ -557,7 +574,7 @@ class _ShellLinkDataList(WinshellObject):
     def flags(self):
         prefix = "SLDF_"
         results = set()
-        all_attributes = self._shell_object.GetFlags()
+        all_attributes = wrapped(self._shell_object.GetFlags)
         for attr in dir(shellcon):
             if attr.startswith(prefix):
                 if all_attributes & getattr(shellcon, attr):
@@ -577,26 +594,26 @@ class _ShellLinkDataList(WinshellObject):
                 except TypeError:
                     attribute = attribute | getattr(shellcon, "SLDF_" + a.upper())
 
-        return bool(self._shell_object.GetFlags() & attribute)
+        return bool(wrapped(self._shell_object.GetFlags) & attribute)
 
     def __getitem__(self, sig):
-        return self._shell_object.CopyDataBlock(sig)
+        return wrapped(self._shell_object.CopyDataBlock, sig)
 
     def __setitem__(self, sig, data):
         data['Signature'] = sig
-        self._shell_object.AddDataBlock(data)
+        wrapped(self._shell_object.AddDataBlock, data)
 
     def __delitem__(self, sig):
-        self._shell_object.RemoveDataBlock(sig)
+        wrapped(self._shell_object.RemoveDataBlock, sig)
 
 
 class Shortcut(WinshellObject):
 
-    show_states = {
-        "normal" : win32con.SW_SHOWNORMAL,
-        "max" : win32con.SW_SHOWMAXIMIZED,
-        "min" : win32con.SW_SHOWMINNOACTIVE
-    }
+    show_states = dict(
+        normal=win32con.SW_SHOWNORMAL,
+        max=win32con.SW_SHOWMAXIMIZED,
+        min=win32con.SW_SHOWMINNOACTIVE
+    )
 
     def __init__(self, lnk_filepath=None, **kwargs):
         self._shell_link = wrapped(
@@ -652,48 +669,48 @@ class Shortcut(WinshellObject):
             self.write()
 
     def _get_arguments(self):
-        return self._shell_link.GetArguments()
+        return wrapped(self._shell_link.GetArguments)
 
     def _set_arguments(self, arguments):
-        self._shell_link.SetArguments(arguments)
+        wrapped(self._shell_link.SetArguments, arguments)
     arguments = property(_get_arguments, _set_arguments)
 
     def _get_description(self):
-        return self._shell_link.GetDescription()
+        return wrapped(self._shell_link.GetDescription)
 
     def _set_description(self, description):
-        self._shell_link.SetDescription(description)
+        wrapped(self._shell_link.SetDescription, description)
 
     description = property(_get_description, _set_description)
 
     def _get_hotkey(self):
-        return self._shell_link.GetHotkey()
+        return wrapped(self._shell_link.GetHotkey)
 
     def _set_hotkey(self, hotkey):
-        self._shell_link.SetHotkey(hotkey)
+        wrapped(self._shell_link.SetHotkey, hotkey)
 
     hotkey = property(_get_hotkey, _set_hotkey)
 
     def _get_icon_location(self):
-        path, index = self._shell_link.GetIconLocation()
+        path, index = wrapped(self._shell_link.GetIconLocation)
         return path, index
 
     def _set_icon_location(self, icon_location):
-        self._shell_link.SetIconLocation(*icon_location)
+        wrapped(self._shell_link.SetIconLocation, *icon_location)
 
     icon_location = property(_get_icon_location, _set_icon_location)
 
     def _get_path(self):
-        lnk_filepath, data = self._shell_link.GetPath(shell.SLGP_UNCPRIORITY)
+        lnk_filepath, data = wrapped(self._shell_link.GetPath, shell.SLGP_UNCPRIORITY)
         return lnk_filepath
 
     def _set_path(self, path):
-        self._shell_link.SetPath(path)
+        wrapped(self._shell_link.SetPath, path)
 
     path = property(_get_path, _set_path)
 
     def _get_show_cmd(self):
-        show_cmd = self._shell_link.GetShowCmd()
+        show_cmd = wrapped(self._shell_link.GetShowCmd)
         for k, v in self.show_states.items():
             if v == show_cmd:
                 return k
@@ -705,33 +722,39 @@ class Shortcut(WinshellObject):
             show_cmd = int(show_cmd)
         except ValueError:
             show_cmd = self.show_states[show_cmd]
-        self._shell_link.SetShowCmd(show_cmd)
+        wrapped(self._shell_link.SetShowCmd, show_cmd)
 
     show_cmd = property(_get_show_cmd, _set_show_cmd)
 
     def _get_working_directory(self):
-        return self._shell_link.GetWorkingDirectory()
+        return wrapped(self._shell_link.GetWorkingDirectory)
 
     def _set_working_directory(self, working_directory):
-        self._shell_link.SetWorkingDirectory(working_directory)
+        wrapped(self._shell_link.SetWorkingDirectory, working_directory)
 
     working_directory = property(_get_working_directory, _set_working_directory)
 
-    def get_console_properties(self):
-        return ConsoleProperties.from_shortcut(self)
-    def set_console_properties(self, properties):
+    def _get_console_properties(self):
+        try:
+            return ConsoleProperties.from_shortcut(self)
+        except x_no_console_properties:
+            return None
+
+    def _set_console_properties(self, properties):
         if properties is None:
             return del_console_properties()
         data_list = self.get_data_list()
         del data_list[shellcon.NT_CONSOLE_PROPS_SIG]
         data_list[shellcon.NT_CONSOLE_PROPS_SIG] = dict(properties)
-    def del_console_properties(self):
+
+    def _del_console_properties(self):
         data_list = self.get_data_list()
         del data_list[shellcon.NT_CONSOLE_PROPS_SIG]
-    console_properties = property(get_console_properties, set_console_properties, del_console_properties)
+
+    console_properties = property(_get_console_properties, _set_console_properties, _del_console_properties)
 
     def get_data_list(self):
-      return _ShellLinkDataList(self._shell_link.QueryInterface(shell.IID_IShellLinkDataList))
+        return _ShellLinkDataList(wrapped(self._shell_link.QueryInterface, shell.IID_IShellLinkDataList))
 
     def write(self, lnk_filepath=None):
         if not lnk_filepath:
@@ -815,19 +838,19 @@ def structured_storage(filename):
     Returns a dictionary of information found
     """
 
-    if not pythoncom.StgIsStorageFile(filename):
+    if not wrapped(pythoncom.StgIsStorageFile, filename):
         return {}
 
     flags = storagecon.STGM_READ | storagecon.STGM_SHARE_EXCLUSIVE
-    storage = pythoncom.StgOpenStorage(filename, None, flags)
+    storage = wrapped(pythoncom.StgOpenStorage, filename, None, flags)
     try:
-        properties_storage = storage.QueryInterface(pythoncom.IID_IPropertySetStorage)
+        properties_storage = wrapped(storage.QueryInterface, pythoncom.IID_IPropertySetStorage)
     except pythoncom.com_error:
         return {}
 
-    property_sheet = properties_storage.Open(FMTID_USER_DEFINED_PROPERTIES)
+    property_sheet = wrapped(properties_storage.Open, FMTID_USER_DEFINED_PROPERTIES)
     try:
-        data = property_sheet.ReadMultiple(PROPERTIES)
+        data = wrapped(property_sheet.ReadMultiple, PROPERTIES)
     finally:
         property_sheet = None
 
@@ -890,7 +913,7 @@ class ShellItem(WinshellObject):
             #
             # pidl is absolute
             #
-            parent_obj = _desktop.BindToObject(pidl[:-1], None, shell.IID_IShellFolder)
+            parent_obj = wrapped(_desktop.BindToObject, pidl[:-1], None, shell.IID_IShellFolder)
             rpidl = pidl[-1:]
         else:
             #
@@ -901,17 +924,17 @@ class ShellItem(WinshellObject):
 
     @classmethod
     def from_path(cls, path):
-        _, pidl, flags = _desktop.ParseDisplayName(0, None, path, shellcon.SFGAO_FOLDER)
+        _, pidl, flags = wrapped(_desktop.ParseDisplayName, 0, None, path, shellcon.SFGAO_FOLDER)
         if flags & shellcon.SFGAO_FOLDER:
             return ShellFolder.from_pidl(pidl)
         else:
             return ShellItem.from_pidl(pidl)
 
     def _ifolder2(self):
-        return self.parent._folder.QueryInterface(shell.IID_IShellFolder2)
+        return wrapped(self.parent._folder.QueryInterface, shell.IID_IShellFolder2)
 
     def _ifolder2(self):
-        return self.parent._folder.QueryInterface(shell.IID_IShellFolder2)
+        return wrapped(self.parent._folder.QueryInterface, shell.IID_IShellFolder2)
 
     def as_string(self):
         return self.filename()
@@ -926,7 +949,7 @@ class ShellItem(WinshellObject):
     def attributes(self):
         prefix = "SFGAO_"
         results = set()
-        all_attributes = self.parent._folder.GetAttributesOf([self.rpidl], -1)
+        all_attributes = wrapped(self.parent._folder.GetAttributesOf, [self.rpidl], -1)
         for attr in dir(shellcon):
             if attr.startswith(prefix):
                 if all_attributes & getattr(shellcon, attr):
@@ -946,14 +969,14 @@ class ShellItem(WinshellObject):
                 except TypeError:
                     attribute = attribute | getattr(shellcon, "SFGAO_" + a.upper())
 
-        return bool(self.parent._folder.GetAttributesOf([self.rpidl], attribute) & attribute)
+        return bool(wrapped(self.parent._folder.GetAttributesOf, [self.rpidl], attribute) & attribute)
 
     def details(self, fmtid_name):
         return  dict((pid_name, self.detail(fmtid_name, pid_name)) for pid_name in DETAILS[fmtid_name])
 
     def detail(self, fmtid, pid):
         try:
-            fmtid = pywintypes.IID(fmtid)
+            fmtid = wrapped(pywintypes.IID, fmtid)
         except pywintypes.com_error:
             fmtid = _fmtids[fmtid]
         try:
@@ -964,17 +987,17 @@ class ShellItem(WinshellObject):
             folder = self.parent._folder
         else:
             folder = self._folder
-        folder2 = folder.QueryInterface(shell.IID_IShellFolder2)
-        return folder2.GetDetailsEx(self.rpidl, (fmtid, pid))
+        folder2 = wrapped(folder.QueryInterface, shell.IID_IShellFolder2)
+        return wrapped(folder2.GetDetailsEx, self.rpidl, (fmtid, pid))
 
     def filename(self):
         return self.name(shellcon.SHGDN_FORPARSING)
 
     def name(self, type=shellcon.SHGDN_NORMAL):
-        return self.parent._folder.GetDisplayNameOf(self.rpidl, type)
+        return wrapped(self.parent._folder.GetDisplayNameOf, self.rpidl, type)
 
     def stat(self):
-        stream = self.parent._folder.BindToStorage(self.rpidl, None, pythoncom.IID_IStream)
+        stream = wrapped(self.parent._folder.BindToStorage, self.rpidl, None, pythoncom.IID_IStream)
         return make_storage_stat(stream.Stat())
 
     def details(self, fmtid_name):
@@ -982,7 +1005,7 @@ class ShellItem(WinshellObject):
 
     def detail(self, fmtid, pid):
         try:
-            fmtid = pywintypes.IID(fmtid)
+            fmtid = wrapped(pywintypes.IID, fmtid)
         except pywintypes.com_error:
             fmtid = _fmtid_from_name(fmtid)
         try:
@@ -993,15 +1016,15 @@ class ShellItem(WinshellObject):
             folder = self.parent._folder
         else:
             folder = self._folder
-        folder2 = folder.QueryInterface(shell.IID_IShellFolder2)
-        return folder2.GetDetailsEx(self.rpidl, (fmtid, pid))
+        folder2 = wrapped(folder.QueryInterface, shell.IID_IShellFolder2)
+        return wrapped(folder2.GetDetailsEx, self.rpidl, (fmtid, pid))
 
 class ShellFolder(ShellItem):
 
     def __init__(self, parent, rpidl):
         ShellItem.__init__(self, parent, rpidl)
         if parent:
-            self._folder = self.parent._folder.BindToObject(self.rpidl, None, shell.IID_IShellFolder)
+            self._folder = wrapped(self.parent._folder.BindToObject, self.rpidl, None, shell.IID_IShellFolder)
         else:
             self._folder = None
 
@@ -1009,7 +1032,7 @@ class ShellFolder(ShellItem):
         return self.get_child(item)
 
     def folders(self, flags=0):
-        enum = self._folder.EnumObjects(0, flags | shellcon.SHCONTF_FOLDERS)
+        enum = wrapped(self._folder.EnumObjects, 0, flags | shellcon.SHCONTF_FOLDERS)
         if enum:
             while True:
                 pidls = enum.Next(1)
@@ -1020,7 +1043,7 @@ class ShellFolder(ShellItem):
                     break
 
     def items(self, flags=0):
-        enum = self._folder.EnumObjects(0, flags | shellcon.SHCONTF_NONFOLDERS)
+        enum = wrapped(self._folder.EnumObjects, 0, flags | shellcon.SHCONTF_NONFOLDERS)
         if enum:
             while True:
                 rpidls = enum.Next(1)
@@ -1052,7 +1075,7 @@ class ShellFolder(ShellItem):
         return ShellItem(self, rpidl)
 
     def get_child(self, name, hWnd=None):
-        n_eaten, rpidl, attributes = self._folder.ParseDisplayName(hWnd, None, name, shellcon.SFGAO_FOLDER)
+        n_eaten, rpidl, attributes = wrapped(self._folder.ParseDisplayName, hWnd, None, name, shellcon.SFGAO_FOLDER)
         if attributes & shellcon.SFGAO_FOLDER:
             return self.folder_factory(rpidl)
         else:
@@ -1116,9 +1139,9 @@ class ShellRecycledItem(ShellItem):
             delete_file(tempdir, allow_undo=False, no_confirm=True, silent=True)
 
     def contents(self, buffer_size=8192):
-        istream = self.parent._folder.BindToStorage(self.rpidl, None, pythoncom.IID_IStream)
+        istream = wrapped(self.parent._folder.BindToStorage, self.rpidl, None, pythoncom.IID_IStream)
         while True:
-            contents = istream.Read(buffer_size)
+            contents = wrapped(istream.Read, buffer_size)
             if contents:
                 yield contents
             else:
@@ -1133,15 +1156,15 @@ class ShellRecycleBin(ShellFolder):
         ShellFolder.__init__(
             self,
             ShellDesktop(),
-            shell.SHGetSpecialFolderLocation(0, shellcon.CSIDL_BITBUCKET)
+            wrapped(shell.SHGetSpecialFolderLocation, 0, shellcon.CSIDL_BITBUCKET)
         )
 
     def __len__(self):
-        _, n_items = shell.SHQueryRecycleBin(None)
+        _, n_items = wrapped(shell.SHQueryRecycleBin, None)
         return n_items
 
     def get_size(self):
-        size, _ = shell.SHQueryRecycleBin(None)
+        size, _ = wrapped(shell.SHQueryRecycleBin, None)
         return size
 
     def item_factory(self, rpidl):
@@ -1157,7 +1180,7 @@ class ShellRecycleBin(ShellFolder):
             flags |= shellcon.SHERB_NOPROGRESSUI
         if not sound:
             flags |= shellcon.SHERB_NOSOUND
-        shell.SHEmptyRecycleBin(None, None, flags)
+        wrapped(shell.SHEmptyRecycleBin, None, None, flags)
 
     def undelete(self, original_filepath):
         """Restore the most recent version of a filepath, returning
@@ -1193,7 +1216,7 @@ class ShellDesktop(ShellFolder):
         self._folder = _desktop_folder
 
     def name(self, type=shellcon.SHGDN_NORMAL):
-        return self._folder.GetDisplayNameOf(self.rpidl, type)
+        return wrapped(self._folder.GetDisplayNameOf, self.rpidl, type)
 
 def shell_object(shell_object=UNSET):
     if shell_object is None:
