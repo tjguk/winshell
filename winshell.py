@@ -33,6 +33,7 @@ import win32con
 from win32com import storagecon
 from win32com.shell import shell, shellcon
 import win32api
+import win32clipboard
 import win32timezone
 import pythoncom
 import pywintypes
@@ -978,6 +979,93 @@ def shell_object(shell_object=UNSET):
         return shell_object
     else:
         return ShellDesktop().get_child(shell_object)
+
+class Clipboard(object):
+    
+    def __init__(self, hWnd=None):
+        self.hWnd = hWnd
+        self._is_owned = False
+    
+    def __enter__(self):
+        self.open()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+    
+    def __getitem__(self, item):
+        self._check_ownership()
+        return win32clipboard.GetClipboardData(self._to_format(item))
+    
+    def __setitem__(self, item, value):
+        self._check_ownership()
+        win32clipboard.SetClipboardData(self._to_format(item), value)
+
+    def __iter__(self):
+        self._check_ownership()
+        for format in self._enum_formats():
+            yield format, self[format]
+        
+    @staticmethod
+    def _to_format(item):
+        if isinstance(item, basestring):
+            try:
+                return getattr(win32clipboard, item.upper())
+            except AttributeError:
+                return getattr(win32clipboard, "CF_%s" % item.upper())
+        else:
+            return item
+    
+    def _check_ownership(self):
+        if not self._is_owned:
+            raise RuntimeError("Unable to access clipboard without owning it")
+    
+    def _enum_formats(self):
+        self._check_ownership()
+        format = 0
+        while True:
+            format = win32clipboard.EnumClipboardFormats(format)
+            if format == 0:
+                break
+            yield format
+    
+    def open(self):
+        win32clipboard.OpenClipboard(self.hWnd)
+        self._is_owned = True
+    
+    def close(self):
+        self._is_owned = False
+        win32clipboard.CloseClipboard()
+    
+    def clear(self):
+        self._check_ownership()
+        win32clipboard.EmptyClipboard()
+    
+    def formats(self):
+        return self._enum_formats()
+    
+    def format_name(self, format):
+        for attr in dir(win32clipboard):
+            if attr.startswith("CF_") and getattr(win32clipboard, attr) == format:
+                return attr
+        else:
+            return win32clipboard.GetClipboardFormatName(format)
+    
+    def set_text(self, utext):
+        self._check_ownership()
+        self["unicodetext"] = unicode(utext)
+        self["text"] = unicode(utext).encode("mbcs")
+    
+    def get_text(self, format="unicodetext"):
+        return self[format]
+        
+def to_clipboard(utext):
+    with Clipboard() as clipboard:
+        clipboard.set_text(utext)
+
+def from_clipboard():
+    with Clipboard() as clipboard:
+        return clipboard.get_text()
 
 #
 # Legacy functions, retained for backwards compatibility
