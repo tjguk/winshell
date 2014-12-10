@@ -1058,14 +1058,24 @@ class Clipboard(object):
     
     def get_text(self, format="unicodetext"):
         return self[format]
+    
+    def _text_from_clipboard(self):
+        self.open()
+        try:
+            return self.get_text()
+        finally:
+            self.close()
+    
+    def _text_to_clipboard(self, utext):
+        self.open()
+        try:
+            return self.set_text(utext)
+        finally:
+            self.close()
+    
+    text = property(_text_from_clipboard, _text_to_clipboard)
         
-def to_clipboard(utext):
-    with Clipboard() as clipboard:
-        clipboard.set_text(utext)
-
-def from_clipboard():
-    with Clipboard() as clipboard:
-        return clipboard.get_text()
+clipboard = Clipboard()
 
 #
 # Legacy functions, retained for backwards compatibility
