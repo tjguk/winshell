@@ -34,6 +34,8 @@ from win32com import storagecon
 from win32com.shell import shell, shellcon
 import win32api
 import win32clipboard
+import win32console
+import win32event
 import win32timezone
 import pythoncom
 import pywintypes
@@ -1106,6 +1108,46 @@ def CreateShortcut(Path, Target, Arguments="", StartIn="", Icon=("", 0), Descrip
     lnk.description = Description
     lnk.write(Path)
 
+class Console(WinshellObject):
+    
+    def __init__(self, conin=UNSET, conout=UNSET):
+        if conin is UNSET:
+            self.conin = win32console.GetStdHandle(win32console.STD_INPUT_HANDLE)
+        else:
+            self.conin = conin
+        if conout is UNSET:
+            self.conout = win32console.GetStdHandle(win32console.STD_OUTPUT_HANDLE)
+        else:
+            self.conout = conout
+    
+    def _get_title(self):
+        return win32console.GetConsoleTitle()
+    def _set_title(self, title):
+        return win32console.SetConsoleTitle(title)
+    title = property(_get_title, _set_title)
+
+    def as_string(self):
+        return "Conin: %s; Conout: %s" % (self.conin, self.conout)
+    
+    def write(self, text):
+        self.conout.WriteConsole(text)
+    
+    def read(self, n_chars):
+        return self.conin.ReadConsole(n_chars)
+    
+    def event(self, wait=True):
+        if not wait and self.conin.GetNumberOfConsoleInputEvents() == 0:
+            return None
+        else:
+            for event in self.events(1):
+                return event
+    
+    def events(self, n_records_max=1):
+        for event in self.conin.ReadConsoleInput(n_records_max):
+            yield event
+    
+    def info(self):
+        return self.conout.GetConsoleScreenBufferInfo()
 
 if __name__ == '__main__':
     try:
