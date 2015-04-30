@@ -1108,6 +1108,31 @@ def CreateShortcut(Path, Target, Arguments="", StartIn="", Icon=("", 0), Descrip
     lnk.description = Description
     lnk.write(Path)
 
+class ConsoleEvent(WinshellObject):
+    
+    def __init__(self, input_event):
+        WinshellObject.__init__(self)
+        self._input_event = input_event
+    
+    def __getattr__(self, attr):
+        return getattr(self._input_event, attr)
+        
+    def as_string(self):
+        return str(self._input_event)
+
+    def dumped(self, level=0):
+        output = []
+        output.append(self.as_string())
+        output.append("")
+        for attribute, value in sorted(vars(self._input_event).items()):
+            if not attribute.startswith("_") and isinstance(value, property):
+                output.append("%s: %s" % (attribute, getattr(self, attribute)))
+        return dumped("\n".join(output), level)
+
+class ConsoleKeyEvent(ConsoleEvent):
+    
+    pass
+
 class Console(WinshellObject):
     
     def __init__(self, conin=UNSET, conout=UNSET):
@@ -1144,7 +1169,11 @@ class Console(WinshellObject):
     
     def events(self, n_records_max=1):
         for event in self.conin.ReadConsoleInput(n_records_max):
-            yield event
+            if event.EventType == 1:
+                klass = ConsoleKeyEvent
+            else:
+                klass = ConsoleEvenet
+            yield klass(event)
     
     def info(self):
         return self.conout.GetConsoleScreenBufferInfo()
