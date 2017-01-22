@@ -35,5 +35,6 @@ setup(
     url="https://github.com/tjguk/winshell",
     license="http://www.opensource.org/licenses/mit-license.php",
     py_modules=["winshell", "__winshell_version__"],
+    install_requires=["pypiwin32"],
     long_description=long_description
 )
