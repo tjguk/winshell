@@ -7,7 +7,7 @@ Shortcuts
 
 The Windows Shell offers a facility -- properly called a Shell Link but most
 commonly referred to as a shortcut -- to link
-to a shell item, most commonly a file.  This is not the same as a hardlink or a symlink, bot
+to a shell item, most commonly a file.  This is not the same as a hardlink or a symlink, both
 of which are implemented in an underlying file system. Shortcuts
 are Shell objects which only behave differently when accessed
 via a Shell interface (most commonly Windows Explorer) and can refer
