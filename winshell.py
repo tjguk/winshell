@@ -31,7 +31,8 @@ import tempfile
 
 import win32con
 from win32com import storagecon
-from win32com.shell import shell, shellcon
+from win32comext.shell import shell, shellcon
+import win32.lib.win32con as win32con
 import win32api
 import win32clipboard
 import win32timezone
