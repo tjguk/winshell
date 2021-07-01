@@ -35,8 +35,10 @@ from win32com.shell import shell, shellcon
 import win32api
 import win32clipboard
 import win32timezone
+from winreg import OpenKey, HKEY_CURRENT_USER, QueryValueEx
 import pythoncom
 import pywintypes
+
 
 #
 # version compaibility workaround
@@ -202,6 +204,16 @@ def recent():
 def sendto():
     "What folder holds the SendTo shortcuts(from the Context Menu)?"
     return get_path(shellcon.CSIDL_SENDTO)
+
+def downloads():
+    "What folder holds the Downloads files"
+    return query_registry('Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders', '{374DE290-123F-4565-9164-39C4925E467B}')
+
+def query_registry(key, value):
+    res = ''
+    with OpenKey(HKEY_CURRENT_USER, key) as k:
+        res = QueryValueEx(k, value)[0]
+    return res
 
 #
 # Internally abstracted function to handle one of several shell-based file manipulation
